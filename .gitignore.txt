@@ -1,0 +1,26 @@
+# --- IDE & OS ---
+.idea/
+.vscode/
+*.iws
+*.iml
+*.ipr
+.DS_Store
+*.log
+*.swp
+
+# --- Frontend (React/Vite) ---
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# --- Backend (Spring Boot/Maven) ---
+backend/target/
+backend/pom.xml.tag
+backend/pom.xml.releaseBackup
+backend/pom.xml.versionsBackup
+backend/pom.xml.next
+backend/*.jar
+
+# (Tùy chọn) Nếu không muốn dùng Maven Wrapper thì bỏ qua dòng dưới
+# backend/.mvn/

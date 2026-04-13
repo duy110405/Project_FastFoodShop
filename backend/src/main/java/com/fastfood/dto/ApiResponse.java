@@ -1,15 +1,19 @@
 package com.fastfood.dto;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ApiResponse<T>{
+public class ApiResponse<T> {
     int code;
     String message;
-    T data; // Dùng Generic <T> để chứa bất kỳ loại dữ liệu nào (KhachHang, HoaDon...)
+    T data;
 }

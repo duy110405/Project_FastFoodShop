@@ -5,37 +5,28 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-
 @Entity
-@Table(name = "stock_receipt_details")
+@Table(name = "stock_request_details")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class StockReceiptDetail {
+public class StockRequestDetail {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "stock_receipt_id", nullable = false)
-    StockReceipt stockReceipt;
+    @JoinColumn(name = "stock_request_id", nullable = false)
+    StockRequest stockRequest;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ingredient_id", nullable = false)
     Ingredient ingredient;
 
-    @Column(name = "quantity", nullable = false)
-    Integer quantity;
-
-    @Column(name = "unit_price", nullable = false, precision = 18, scale = 2)
-    BigDecimal unitPrice;
-
-    @Column(name = "expiry_date")
-    LocalDate expiryDate;
+    @Column(name = "requested_quantity", nullable = false)
+    Integer requestedQuantity;
 }

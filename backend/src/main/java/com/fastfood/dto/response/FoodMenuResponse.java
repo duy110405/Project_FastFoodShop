@@ -1,0 +1,12 @@
+package com.fastfood.dto.response;
+
+import lombok.Data;
+
+import java.math.BigDecimal;
+
+@Data
+public class FoodMenuResponse {
+    private String idFood;
+    private String foodName;
+    private BigDecimal unitPrice;
+}

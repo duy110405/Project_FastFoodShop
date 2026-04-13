@@ -60,7 +60,6 @@ public class IngredientController {
         return ApiResponse.<IngredientResponse>builder()
                 .code(200)
                 .message("Xóa thành công")
-                .data(null)
                 .build();
     }
 

@@ -6,6 +6,8 @@ import com.fastfood.entity.catalog.Ingredient;
 import com.fastfood.mapper.IngredientMapper;
 import com.fastfood.repository.IngredientRepository;
 import com.fastfood.service.IIngredientService;
+import jakarta.transaction.Transactional;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -51,6 +53,7 @@ public class IngredientImpl implements IIngredientService {
 
     // hàm lưu
     @Override
+    @Transactional
     public IngredientResponse saveIngredient (IngredientRequest ingredientRequest){
         //Map từ Dto sang entity
         Ingredient ingredient =ingredientMapper.toIngredientEntity(ingredientRequest);
@@ -64,6 +67,7 @@ public class IngredientImpl implements IIngredientService {
 
     // hàm update
     @Override
+    @Transactional
     public IngredientResponse updateIngredient (IngredientRequest ingredientRequest , String idIngredient){
         // tìm entity cũ trong db
         Ingredient existingIngredient =findIngredientById(idIngredient);
@@ -76,6 +80,10 @@ public class IngredientImpl implements IIngredientService {
 
     // Hàm xóa
     public void deleteIngredient(String idIngredient ){
-         ingredientRepository.deleteById(idIngredient);
+        try {
+            ingredientRepository.deleteById(idIngredient);
+        } catch (DataIntegrityViolationException e) {
+            throw new RuntimeException("Không thể xóa nguyên liệu này vì đang có món ăn sử dụng nó!");
+        }
     }
 }

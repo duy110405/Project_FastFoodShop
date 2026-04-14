@@ -1,10 +1,14 @@
 package com.fastfood.dto.response;
 
-import lombok.*;
-import lombok.experimental.FieldDefaults;
-
 import java.time.LocalDate;
 import java.util.List;
+
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @Data
 @NoArgsConstructor
@@ -12,11 +16,10 @@ import java.util.List;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class StockReceiptResponse {
-    String idStockReceipt;
-    String supplierId;
-    String supplierName;
+    String idReceipt;
     LocalDate receiptDate;
+    String supplierName;
+    String status;
     String createdBy;
-    String note;
     List<StockMovementDetailResponse> details;
 }

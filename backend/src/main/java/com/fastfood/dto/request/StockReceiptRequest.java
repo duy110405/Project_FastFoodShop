@@ -1,10 +1,14 @@
 package com.fastfood.dto.request;
 
-import lombok.*;
-import lombok.experimental.FieldDefaults;
-
 import java.time.LocalDate;
 import java.util.List;
+
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @Data
 @NoArgsConstructor
@@ -12,9 +16,9 @@ import java.util.List;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class StockReceiptRequest {
-    String supplierId;
     LocalDate receiptDate;
+    String supplierName;
+    String status;
     String createdBy;
-    String note;
     List<StockReceiptDetailRequest> details;
 }

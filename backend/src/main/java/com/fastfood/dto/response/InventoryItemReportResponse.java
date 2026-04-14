@@ -1,6 +1,12 @@
 package com.fastfood.dto.response;
 
-import lombok.*;
+import java.math.BigDecimal;
+
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Data
@@ -12,7 +18,7 @@ public class InventoryItemReportResponse {
     String ingredientId;
     String ingredientName;
     String unit;
-    Integer currentStock;
-    Integer minStock;
+    BigDecimal currentStock;
+    BigDecimal minStock;
     boolean lowStock;
 }

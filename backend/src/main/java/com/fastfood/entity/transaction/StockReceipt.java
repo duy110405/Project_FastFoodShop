@@ -1,13 +1,22 @@
 package com.fastfood.entity.transaction;
 
-import com.fastfood.entity.catalog.Supplier;
-import jakarta.persistence.*;
-import lombok.*;
-import lombok.experimental.FieldDefaults;
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.FieldDefaults;
 
 @Entity
 @Table(name = "stock_receipts")
@@ -18,22 +27,22 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class StockReceipt {
+
     @Id
-    @Column(name = "id_stock_receipt", length = 20)
-    String idStockReceipt;
+    @Column(name = "id_receipt", length = 10)
+    String idReceipt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "supplier_id", nullable = false)
-    Supplier supplier;
-
-    @Column(name = "receipt_date", nullable = false)
+    @Column(name = "receipt_date")
     LocalDate receiptDate;
 
-    @Column(name = "created_by", length = 100)
-    String createdBy;
+    @Column(name = "supplier_name", length = 100)
+    String supplierName;
 
-    @Column(name = "note", length = 255)
-    String note;
+    @Column(name = "status", length = 20)
+    String status;
+
+    @Column(name = "created_by", length = 10)
+    String createdBy;
 
     @OneToMany(mappedBy = "stockReceipt", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

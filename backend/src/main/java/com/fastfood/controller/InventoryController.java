@@ -1,22 +1,30 @@
 package com.fastfood.controller;
 
-import com.fastfood.dto.ApiResponse;
-import com.fastfood.dto.request.StockIssueRequest;
-import com.fastfood.dto.request.StockReceiptRequest;
-import com.fastfood.dto.request.StockRequestRequest;
-import com.fastfood.dto.response.InventoryItemReportResponse;
-import com.fastfood.dto.response.StockIssueResponse;
-import com.fastfood.dto.response.StockReceiptResponse;
-import com.fastfood.dto.response.StockRequestResponse;
-import com.fastfood.service.IInventoryService;
-import org.springframework.web.bind.annotation.*;
-
+import java.time.LocalDate;
 import java.util.List;
+
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.fastfood.dto.ApiResponse;
+import com.fastfood.dto.request.StockReceiptRequest;
+import com.fastfood.dto.response.InventoryItemReportResponse;
+import com.fastfood.dto.response.StockReceiptResponse;
+import com.fastfood.service.IInventoryService;
 
 @RestController
 @RequestMapping("/api/inventory")
 @CrossOrigin("*")
 public class InventoryController {
+
     private final IInventoryService inventoryService;
 
     public InventoryController(IInventoryService inventoryService) {
@@ -41,39 +49,41 @@ public class InventoryController {
                 .build();
     }
 
-    @PostMapping("/requests")
-    public ApiResponse<StockRequestResponse> createRequest(@RequestBody StockRequestRequest request) {
-        return ApiResponse.<StockRequestResponse>builder()
-                .code(201)
-                .message("Tạo phiếu yêu cầu nguyên liệu thành công")
-                .data(inventoryService.createStockRequest(request))
-                .build();
-    }
-
-    @GetMapping("/requests")
-    public ApiResponse<List<StockRequestResponse>> getAllRequests() {
-        return ApiResponse.<List<StockRequestResponse>>builder()
+    @PutMapping("/receipts/{idReceipt}")
+    public ApiResponse<StockReceiptResponse> updateReceipt(
+            @PathVariable String idReceipt,
+            @RequestBody StockReceiptRequest request
+    ) {
+        return ApiResponse.<StockReceiptResponse>builder()
                 .code(200)
-                .message("Lấy danh sách phiếu yêu cầu thành công")
-                .data(inventoryService.getAllStockRequests())
+                .message("Cập nhật phiếu nhập thành công")
+                .data(inventoryService.updateStockReceipt(idReceipt, request))
                 .build();
     }
 
-    @PostMapping("/issues")
-    public ApiResponse<StockIssueResponse> createIssue(@RequestBody StockIssueRequest request) {
-        return ApiResponse.<StockIssueResponse>builder()
-                .code(201)
-                .message("Xuất kho thành công")
-                .data(inventoryService.createStockIssue(request))
-                .build();
-    }
-
-    @GetMapping("/issues")
-    public ApiResponse<List<StockIssueResponse>> getAllIssues() {
-        return ApiResponse.<List<StockIssueResponse>>builder()
+    @DeleteMapping("/receipts/{idReceipt}")
+    public ApiResponse<String> deleteReceipt(@PathVariable String idReceipt) {
+        inventoryService.deleteStockReceipt(idReceipt);
+        return ApiResponse.<String>builder()
                 .code(200)
-                .message("Lấy danh sách phiếu xuất thành công")
-                .data(inventoryService.getAllStockIssues())
+                .message("Xóa phiếu nhập thành công")
+                .data(idReceipt)
+                .build();
+    }
+
+    @GetMapping("/receipts/search")
+    public ApiResponse<List<StockReceiptResponse>> searchReceipts(
+            @RequestParam(required = false) String supplierName,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate,
+            @RequestParam(required = false) String ingredientId
+    ) {
+        return ApiResponse.<List<StockReceiptResponse>>builder()
+                .code(200)
+                .message("Tìm phiếu nhập thành công")
+                .data(inventoryService.searchStockReceipts(
+                        supplierName, fromDate, toDate, ingredientId
+                ))
                 .build();
     }
 

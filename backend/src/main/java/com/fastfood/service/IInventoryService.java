@@ -1,22 +1,27 @@
 package com.fastfood.service;
 
-import com.fastfood.dto.request.StockIssueRequest;
-import com.fastfood.dto.request.StockReceiptRequest;
-import com.fastfood.dto.request.StockRequestRequest;
-import com.fastfood.dto.response.InventoryItemReportResponse;
-import com.fastfood.dto.response.StockIssueResponse;
-import com.fastfood.dto.response.StockReceiptResponse;
-import com.fastfood.dto.response.StockRequestResponse;
-
+import java.time.LocalDate;
 import java.util.List;
+
+import com.fastfood.dto.request.StockReceiptRequest;
+import com.fastfood.dto.response.InventoryItemReportResponse;
+import com.fastfood.dto.response.StockReceiptResponse;
 
 public interface IInventoryService {
     StockReceiptResponse createStockReceipt(StockReceiptRequest request);
+
     List<StockReceiptResponse> getAllStockReceipts();
-    StockRequestResponse createStockRequest(StockRequestRequest request);
-    List<StockRequestResponse> getAllStockRequests();
-    StockIssueResponse createStockIssue(StockIssueRequest request);
-    List<StockIssueResponse> getAllStockIssues();
+
+    StockReceiptResponse updateStockReceipt(String idReceipt, StockReceiptRequest request);
+
+    void deleteStockReceipt(String idReceipt);
+
+    List<StockReceiptResponse> searchStockReceipts(String supplierName,
+                                                   LocalDate fromDate,
+                                                   LocalDate toDate,
+                                                   String ingredientId);
+
     List<InventoryItemReportResponse> getInventoryReport();
+
     List<InventoryItemReportResponse> getLowStockItems();
 }

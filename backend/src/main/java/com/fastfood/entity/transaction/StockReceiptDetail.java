@@ -1,12 +1,24 @@
 package com.fastfood.entity.transaction;
 
-import com.fastfood.entity.catalog.Ingredient;
-import jakarta.persistence.*;
-import lombok.*;
-import lombok.experimental.FieldDefaults;
-
 import java.math.BigDecimal;
-import java.time.LocalDate;
+
+import com.fastfood.entity.catalog.Ingredient;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.FieldDefaults;
 
 @Entity
 @Table(name = "stock_receipt_details")
@@ -17,25 +29,23 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 public class StockReceiptDetail {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    Long id;
+
+    @EmbeddedId
+    StockReceiptDetailId id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "stock_receipt_id", nullable = false)
+    @MapsId("receiptId")
+    @JoinColumn(name = "receipt_id")
     StockReceipt stockReceipt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ingredient_id", nullable = false)
+    @MapsId("ingredientId")
+    @JoinColumn(name = "ingredient_id")
     Ingredient ingredient;
 
-    @Column(name = "quantity", nullable = false)
-    Integer quantity;
+    @Column(name = "quantity_import", precision = 18, scale = 2)
+    BigDecimal quantityImport;
 
-    @Column(name = "unit_price", nullable = false, precision = 18, scale = 2)
-    BigDecimal unitPrice;
-
-    @Column(name = "expiry_date")
-    LocalDate expiryDate;
+    @Column(name = "import_price", precision = 18, scale = 2)
+    BigDecimal importPrice;
 }

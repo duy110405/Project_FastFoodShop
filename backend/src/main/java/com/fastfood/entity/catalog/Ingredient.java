@@ -10,13 +10,15 @@ import lombok.experimental.FieldDefaults;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "ingredients") // Tên bảng trong SQL Server
+@Table(name = "ingredients")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Ingredient {
+
     @Id
     @Column(name = "id_ingredient", length = 20)
     String idIngredient;
@@ -24,9 +26,9 @@ public class Ingredient {
     @Column(name = "ingredient_name", nullable = false, length = 100)
     String ingredientName;
 
-    @Column(name = "unit",  length = 20)
+    @Column(name = "unit", length = 20)
     String unit;
 
-    @Column(name = "quantity_stock")
-    int quantityStock;
+    @Column(name = "quantity_stock", precision = 18, scale = 2)
+    BigDecimal quantityStock;
 }

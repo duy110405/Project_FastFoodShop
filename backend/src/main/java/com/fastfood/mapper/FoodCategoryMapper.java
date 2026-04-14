@@ -1,18 +1,21 @@
 package com.fastfood.mapper;
 
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+
 import com.fastfood.dto.request.FoodCategoryRequest;
 import com.fastfood.dto.response.FoodCategoryResponse;
 import com.fastfood.entity.catalog.FoodCategory;
-import org.mapstruct.Mapper;
-import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface FoodCategoryMapper {
 
-    FoodCategoryResponse toFoodCategoryResponse(FoodCategory foodCategory);
+    FoodCategoryResponse toResponse(FoodCategory foodCategory);
 
-    FoodCategory toFoodCategory (FoodCategoryRequest foodCategoryRequest);
-    // Hàm update
-    void updateFoodCategoryFromRequest (FoodCategoryRequest foodIngredientRequest, @MappingTarget FoodCategory foodCategory);
+    @Mapping(target = "idCategory", ignore = true)
+    FoodCategory toEntity(FoodCategoryRequest request);
+
+    @Mapping(target = "idCategory", ignore = true)
+    void updateEntity(FoodCategoryRequest request, @MappingTarget FoodCategory foodCategory);
 }
-

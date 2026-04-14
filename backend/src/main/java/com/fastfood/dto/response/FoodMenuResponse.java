@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 @Data
 public class FoodMenuResponse {
     private String idFood;
+    private String imageUrlFood;
     private String foodName;
     private BigDecimal unitPrice;
 }

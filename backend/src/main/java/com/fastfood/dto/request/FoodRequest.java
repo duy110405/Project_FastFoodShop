@@ -7,6 +7,7 @@ import java.util.List;
 
 @Data
 public class FoodRequest {
+    private String imageUrlFood;
     private String foodName;
     private String idCategory;
     private BigDecimal unitPrice;

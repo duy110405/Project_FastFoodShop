@@ -21,6 +21,9 @@ public class Food {
     @Column(name = "id_food" , length = 20)
     String idFood ;
 
+    @Column(name = "image_url_food", length = 500)
+    private String imageUrlFood;
+
     @Column(name = "food_name" , length = 50)
     String foodName;
 

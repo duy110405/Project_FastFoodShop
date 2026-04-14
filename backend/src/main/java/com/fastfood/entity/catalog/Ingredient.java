@@ -23,6 +23,9 @@ public class Ingredient {
     @Column(name = "id_ingredient", length = 20)
     String idIngredient;
 
+    @Column(name = "image_url_Ingredient", length = 500)
+    private String imageUrlIngredient;
+
     @Column(name = "ingredient_name", nullable = false, length = 100)
     String ingredientName;
 

@@ -38,6 +38,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(value = Exception.class)
     public ResponseEntity<ApiResponse<Object>> handlingException(Exception exception) {
+
+
+        //vanh
+        exception.printStackTrace();
+
         ApiResponse<Object> response = ApiResponse.builder()
                 .code(500) // Lỗi hệ thống thường để 500
                 .message("Có lỗi hệ thống xảy ra, vui lòng liên hệ admin!")

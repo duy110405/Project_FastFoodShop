@@ -2,8 +2,10 @@ package com.fastfood.dto.request;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 @Data
 public class FoodIngredientRequest {
     private String idIngredient;
-    private Double quantityUsed;
+    private BigDecimal quantityUsed;
 }

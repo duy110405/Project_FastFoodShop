@@ -6,6 +6,8 @@ import com.fastfood.service.ISalesService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 import java.util.Set;
 
 @RestController
@@ -24,7 +26,14 @@ public class SalesController {
     // API đặt món từ màn hình khách hàng
     @PostMapping("/orders")
     public ResponseEntity<?> createOrder(@RequestBody OrderRequest request) {
-        return ResponseEntity.ok(salesService.placeOrder(request));
+        // Vẫn gọi hàm lưu bình thường
+        salesService.placeOrder(request);
+
+        // NHƯNG chỉ trả về một câu thông báo (hoặc một cục JSON nhỏ nhắn)
+        return ResponseEntity.ok(Map.of(
+                "status", 200,
+                "message", "Đặt món thành công! Bếp đang chuẩn bị món ăn cho bạn."
+        ));
     }
 
     // API thanh toán từ màn hình thu ngân

@@ -22,7 +22,7 @@ import com.fastfood.service.IInventoryService;
 
 @RestController
 @RequestMapping("/api/inventory")
-@CrossOrigin("*")
+//@CrossOrigin("*")
 public class InventoryController {
 
     private final IInventoryService inventoryService;

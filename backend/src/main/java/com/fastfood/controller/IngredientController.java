@@ -10,7 +10,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/ingredient")
-@CrossOrigin("*") // Cho phép React gọi API
+//@CrossOrigin("*") // Cho phép React gọi API
 public class IngredientController {
     private final IIngredientService ingredientService;
 

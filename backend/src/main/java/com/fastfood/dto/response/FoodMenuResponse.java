@@ -10,4 +10,5 @@ public class FoodMenuResponse {
     private String imageUrlFood;
     private String foodName;
     private BigDecimal unitPrice;
+    private boolean isAvailable; // Cờ báo hiệu món này còn bán được không
 }

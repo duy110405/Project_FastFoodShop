@@ -10,7 +10,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/foodCategory")
-@CrossOrigin("*")
+//@CrossOrigin("*")
 public class FoodCategoryController {
 
     private final IFoodCategoryService foodCategoryService;

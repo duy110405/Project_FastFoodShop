@@ -2,6 +2,7 @@ package com.fastfood.entity.catalog;
 
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -41,7 +42,7 @@ public class FoodIngredient {
     Ingredient ingredient;
 
     @Column(name = "quantity_used", nullable = false)
-    Double quantityUsed;
+    BigDecimal quantityUsed;
 
     @Getter
     @Setter

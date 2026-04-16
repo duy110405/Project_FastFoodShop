@@ -34,14 +34,23 @@ public class FoodImpl implements IFoodService {
     @Override
     public List<FoodMenuResponse> getAllMenu() {
         return foodRepository.findAll().stream()
-                .map(foodMapper::toFoodMenuResponse)
+                .map(food -> {
+                    // Mapper chuyển đổi các trường cơ bản
+                    FoodMenuResponse response = foodMapper.toFoodMenuResponse(food);
+                    // Chạy hàm tính toán kho ngầm và set vào cờ
+                    response.setAvailable(checkFoodAvailability(food));
+                    return response;
+                })
                 .toList();
     }
     @Override
     public FoodMenuResponse getMenuById(String idFood) {
         Food food = foodRepository.findById(idFood)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy món ăn: " + idFood));
-        return foodMapper.toFoodMenuResponse(food);
+        FoodMenuResponse response = foodMapper.toFoodMenuResponse(food);
+        response.setAvailable(checkFoodAvailability(food));
+
+        return response;
     }
 
     @Override
@@ -90,5 +99,28 @@ public class FoodImpl implements IFoodService {
     @Override
     public void deleteFood(String idFood) {
         foodRepository.deleteById(idFood);
+    }
+
+    // Hàm chạy ngầm kiểm tra kho cho 1 món ăn
+    private boolean checkFoodAvailability(Food food) {
+        if (food.getFoodIngredients() == null || food.getFoodIngredients().isEmpty()) {
+            return true; // Món không cần nguyên liệu thì coi như luôn có sẵn
+        }
+        for (FoodIngredient recipe : food.getFoodIngredients()) {
+            // Tránh NullPointerException bằng cách lấy giá trị an toàn
+            java.math.BigDecimal stock = recipe.getIngredient().getQuantityStock() != null
+                    ? recipe.getIngredient().getQuantityStock()
+                    : java.math.BigDecimal.ZERO;
+
+            java.math.BigDecimal used = recipe.getQuantityUsed() != null
+                    ? recipe.getQuantityUsed()
+                    : java.math.BigDecimal.ZERO;
+
+            // Nếu có bất kỳ nguyên liệu nào không đủ -> Hết hàng
+            if (stock.compareTo(used) < 0) {
+                return false;
+            }
+        }
+        return true; // Tất cả nguyên liệu đều đủ -> Còn hàng
     }
 }

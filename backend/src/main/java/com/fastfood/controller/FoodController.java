@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/foods")
-@CrossOrigin("*") // Cho phép React gọi API
+//@CrossOrigin("*") // Cho phép React gọi API
 public class FoodController {
     public final IFoodService foodService;
 

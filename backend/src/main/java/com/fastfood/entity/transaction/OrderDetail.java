@@ -1,5 +1,6 @@
 package com.fastfood.entity.transaction;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -11,6 +12,7 @@ import com.fastfood.entity.catalog.Food;
 public class OrderDetail {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonIgnore
     private Long id; // Thêm ID giả định để JPA dễ quản lý
 
     @ManyToOne

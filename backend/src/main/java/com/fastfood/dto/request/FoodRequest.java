@@ -11,6 +11,7 @@ public class FoodRequest {
     private String foodName;
     private String idCategory;
     private BigDecimal unitPrice;
+    private String description;
     // Danh sách nguyên liệu mà FE gửi xuống cùng lúc tạo món
     private List<FoodIngredientRequest> ingredients;
 }

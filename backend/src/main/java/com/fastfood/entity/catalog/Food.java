@@ -34,6 +34,9 @@ public class Food {
     @Column(name = "unit_price")
     BigDecimal unitPrice ;
 
+    @Column(name = "description", length = 500)
+    private String description;
+
     // Dòng này giúp Spring Boot tự động móc sang bảng FoodIngredient để lấy nguyên liệu
     @OneToMany(mappedBy = "food", fetch = FetchType.LAZY , cascade = CascadeType.ALL)
     List<FoodIngredient> foodIngredients = new ArrayList<>();

@@ -79,19 +79,29 @@ public class FoodImpl implements IFoodService {
     @Override
     @Transactional
     public FoodKitchenResponse updateFood(String idFood, FoodRequest request) {
+        //  Tìm món ăn cũ dưới Database
         Food existingFood = foodRepository.findById(idFood)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy món ăn mã: " + idFood));
 
-        existingFood.getFoodIngredients().clear();
-
+        // MapStruct sẽ cập nhật Tên, Giá, Ảnh, Danh mục... (Nhưng BỎ QUA list nguyên liệu)
         foodMapper.updateFoodFromRequest(request, existingFood);
 
-        if (existingFood.getFoodIngredients() != null) {
-            for (FoodIngredient item : existingFood.getFoodIngredients()) {
-                item.setFood(existingFood);
+        // XÓA SẠCH nguyên liệu cũ của món này
+        existingFood.getFoodIngredients().clear();
+
+        // THÊM BẰNG TAY nguyên liệu mới từ Request (Frontend gửi xuống)
+        if (request.getIngredients() != null) {
+            // Duyệt qua từng nguyên liệu mới
+            for (var ingredientReq : request.getIngredients()) {
+                // Biến DTO thành Entity nhờ Mapper
+                FoodIngredient newIngredientItem = foodMapper.toFoodIngredientEntity(ingredientReq);
+                // Trói khóa ngoại: Bắt con (nguyên liệu) nhận cha (món ăn)
+                newIngredientItem.setFood(existingFood);
+                // Nhét đứa con vào danh sách của cha
+                existingFood.getFoodIngredients().add(newIngredientItem);
             }
         }
-
+        // Lưu lại một cục (Hibernate sẽ tự động ra lệnh DELETE cũ và INSERT mới)
         Food updatedFood = foodRepository.save(existingFood);
         return foodMapper.toFoodKitchenResponse(updatedFood);
     }

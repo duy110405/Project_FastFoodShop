@@ -11,5 +11,6 @@ public class FoodMenuResponse {
     private String foodName;
     private BigDecimal unitPrice;
     private String description;
+    private String idCategory;
     private boolean isAvailable; // Cờ báo hiệu món này còn bán được không
 }

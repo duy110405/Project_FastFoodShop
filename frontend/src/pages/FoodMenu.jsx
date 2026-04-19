@@ -5,7 +5,7 @@ import '../css/FoodMenu.css';
 import axios from 'axios';
 
 const { Title, Text } = Typography;
-const API_BASE_URL = 'http://localhost:8080/api/foods/menu';
+const API_BASE_URL = 'http://localhost:8080/api';
 
 const FoodMenu = () => {
   const [menuItems, setMenuItems] = useState([]); // Chứa TẤT CẢ món ăn
@@ -18,9 +18,9 @@ const FoodMenu = () => {
   const [foodQuantity, setFoodQuantity] = useState(1);
   useEffect(() => {
    // Hàm gọi API lấy Danh mục (Category)
-    const fetchCategories = async () => {
+   const fetchCategories = async () => {
       try {
-         // API là /api/foodCategory
+        // API chuẩn: http://localhost:8080/api/foodCategory
         const res = await axios.get(`${API_BASE_URL}/foodCategory`);
         setCategories(res.data.data); 
       } catch (err) {
@@ -32,7 +32,7 @@ const FoodMenu = () => {
       // Hàm gọi API lấy TẤT CẢ món ăn
     const fetchFoods = async () => {
       try {
-        // Gọi API : GET /api/v1/foods/menu
+        // API chuẩn: http://localhost:8080/api/foods/menu
         const res = await axios.get(`${API_BASE_URL}/foods/menu`);
         setMenuItems(res.data.data);
         setFilteredItems(res.data.data); // Mặc định hiển thị tất cả
@@ -47,21 +47,19 @@ const FoodMenu = () => {
   }, []);   // [] có nghĩa là chỉ chạy 1 lần khi Load trang
 
   // ====================LOGIC LỌC KHI BẤM VÀO TAB ====================
-  const handleTabChange = (categoryId) => {
-    if (categoryId === "ALL") {
-      setFilteredItems(menuItems); // Bấm "Tất cả" thì show hết
+const handleTabChange = (idCategory) => {
+    if (idCategory === "ALL") {
+      setFilteredItems(menuItems); 
     } else {
-      // Lọc ra những món có chứa categoryId tương ứng
-      const filtered = menuItems.filter(food => food.categoryId === categoryId);
+      const filtered = menuItems.filter(food => food.idCategory === idCategory);
       setFilteredItems(filtered);
     }
   };
 
   // ==================== API ĐẶT MÓN  ====================
-  const handlePlaceOrder = async () => {
+const handlePlaceOrder = async () => {
     if (cart.length === 0) return message.warning("Giỏ hàng đang trống!");
 
-    // Ép kiểu giỏ hàng thành cái OrderRequest mà hôm trước BE test
     const orderPayload = {
       tableNumber: "Bàn A01",
       customerName: "Khách Lẻ",
@@ -73,12 +71,12 @@ const FoodMenu = () => {
     };
 
     try {
-      await axios.post(`${API_BASE_URL}/sales/orders`, orderPayload);
+      // API chuẩn: http://localhost:8080/api/v1/sales/orders
+      await axios.post(`${API_BASE_URL}/v1/sales/orders`, orderPayload);
       message.success("Đặt món thành công! Bếp đang chuẩn bị.");
-      setCart([]); // Xóa giỏ hàng
-      setIsCartModalOpen(false); // Đóng popup
+      setCart([]); 
+      setIsCartModalOpen(false); 
     } catch (err) {
-      // Bắt lỗi HẾT_HÀNG từ Backend trả về
       const errorMsg = err.response?.data?.error || "Lỗi đặt món!";
       if (errorMsg.includes("HẾT_HÀNG")) {
          message.error(`Món ${errorMsg.split('|')[1]} đã hết nguyên liệu trong kho!`);
@@ -91,7 +89,7 @@ const FoodMenu = () => {
   const openFoodDetail = (food) => { setSelectedFood(food); setFoodQuantity(1); };
   const closeFoodDetail = () => { setSelectedFood(null); };
 
- const handleAddToCart = () => {
+  const handleAddToCart = () => {
     const existingItem = cart.find(item => item.idFood === selectedFood.idFood);
     if (existingItem) {
       setCart(cart.map(item => item.idFood === selectedFood.idFood ? { ...item, quantity: item.quantity + foodQuantity } : item));
@@ -115,13 +113,13 @@ const FoodMenu = () => {
   const removeFromCart = (foodId) => setCart(cart.filter(item => item.idFood !== foodId));
   const calculateTotal = () => cart.reduce((total, item) => total + (item.unitPrice * item.quantity), 0);
   const getTotalItems = () => cart.reduce((total, item) => total + item.quantity, 0);
-// Ép cái mảng categories (Lấy từ API) thành định dạng Tabs của Ant Design
-  // Thêm 1 cái tab "Tất Cả" ở đầu
+
+  // Ép cái mảng categories (Lấy từ API) thành định dạng Tabs của Ant Design
   const tabItems = [
     { key: 'ALL', label: 'TẤT CẢ' },
     ...categories.map(cat => ({
       key: cat.idCategory, // ID của danh mục làm Khóa
-      label: cat.categoryName.toUpperCase() // Tên danh mục (ví dụ: FOOD, DRINK)
+      label: cat.categoryName.toUpperCase() 
     }))
   ];
 
@@ -146,7 +144,7 @@ const FoodMenu = () => {
           items={tabItems} 
           centered 
           size="large" 
-          onChange={handleTabChange} // Khi bấm đổi Tab thì gọi hàm Lọc
+          onChange={handleTabChange} 
         />
         
         {/* COMBO CON (Vẫn để mock tĩnh tạm thời) */}
@@ -160,7 +158,7 @@ const FoodMenu = () => {
           <Text type="secondary" strong>BANNER</Text>
         </div>
 
-        {/* 3. GRID MÓN ĂN (Sử dụng filteredItems thay vì menuItems) */}
+        {/* 3. GRID MÓN ĂN */}
         <Row gutter={[16, 16]}>
           {filteredItems.length === 0 ? (
              <div style={{ width: '100%', textAlign: 'center', padding: 50 }}><Text type="secondary">Không có món nào trong danh mục này</Text></div>
@@ -181,7 +179,7 @@ const FoodMenu = () => {
                   <Button 
                     type="primary" shape="round" className="btn-primary-custom" style={{ width: '80%' }} 
                     onClick={() => openFoodDetail(food)}
-                    disabled={!food.available} // Backend báo hết hàng thì mờ nút
+                    disabled={!food.available}
                   >
                     {food.available ? 'Thêm' : 'Hết món'}
                   </Button>
@@ -242,7 +240,6 @@ const FoodMenu = () => {
         
         <div style={{ background: '#fff', padding: 15, borderRadius: 8, marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Title level={4} type="danger" style={{ margin: 0 }}>Tổng: {calculateTotal().toLocaleString('vi-VN')} đ</Title>
-          {/* Nút bấm gọi hàm gọi API Đặt món */}
           <Button type="primary" size="large" shape="round" className="btn-primary-custom" onClick={handlePlaceOrder}>
             Đặt món
           </Button>

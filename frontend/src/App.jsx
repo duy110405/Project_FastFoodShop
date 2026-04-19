@@ -132,16 +132,10 @@ const MainLayout = () => {
 };
 
 function App() {
-  const role = getStoredRole();
-  const roleHomePath = getRoleHomePath(role);
-
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/login"
-          element={role && isRoleNavigable(role) ? <Navigate to={roleHomePath} replace /> : <Login />}
-        />
+        <Route path="/login" element={<Login />} />
 
         <Route
           element={(

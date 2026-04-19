@@ -5,7 +5,7 @@ import '../css/FoodMenu.css';
 import axios from 'axios';
 
 const { Title, Text } = Typography;
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'http://localhost:8081/api';
 
 const resolveTableNumberFromUser = () => {
   const fullName = localStorage.getItem('fullName') || '';

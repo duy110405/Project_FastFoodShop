@@ -38,6 +38,6 @@ public class Food {
     private String description;
 
     // Dòng này giúp Spring Boot tự động móc sang bảng FoodIngredient để lấy nguyên liệu
-    @OneToMany(mappedBy = "food", fetch = FetchType.LAZY , cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "food", cascade = CascadeType.ALL, orphanRemoval = true)
     List<FoodIngredient> foodIngredients = new ArrayList<>();
 }

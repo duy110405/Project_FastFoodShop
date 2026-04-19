@@ -17,6 +17,7 @@ import PaymentPage from './pages/PaymentPage';
 import Login from './pages/Login';
 import InventoryPage from './pages/InventoryPage';
 import MenuAdmin from './pages/MenuAdmin';
+import OrderPage from './pages/OrderPage'; // <-- ĐÃ THÊM IMPORT NÀY
 import './App.css';
 
 const DashboardPage = () => (
@@ -25,11 +26,7 @@ const DashboardPage = () => (
   </div>
 );
 
-const OrdersPage = () => (
-  <div style={{ padding: 20 }}>
-    <h1>Màn hình Đơn hàng</h1>
-  </div>
-);
+// ĐÃ XÓA COMPONENT OrdersPage GIẢ Ở ĐÂY
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title } = Typography;
@@ -179,11 +176,12 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            {/* ĐÃ SỬA LẠI ĐƯỜNG DẪN NÀY ĐỂ TRỎ ĐẾN OrderPage THẬT */}
             <Route
               path="orders"
               element={
                 <ProtectedRoute allowedRoles={['ADMIN']}>
-                  <OrdersPage />
+                  <OrderPage /> 
                 </ProtectedRoute>
               }
             />

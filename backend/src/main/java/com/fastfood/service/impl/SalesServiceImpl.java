@@ -14,6 +14,7 @@ import com.fastfood.repository.OrderRepository;
 import com.fastfood.repository.SalesInvoiceRepository;
 import com.fastfood.service.ISalesService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate; // <-- THÊM IMPORT NÀY
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,9 @@ public class SalesServiceImpl implements ISalesService {
     private final FoodRepository foodRepository;
     private final SalesInvoiceRepository salesInvoiceRepository;
     private final IngredientRepository ingredientRepository;
+    
+    // <-- THÊM CÔNG CỤ BẮN TIN NHẮN WEBSOCKET
+    private final SimpMessagingTemplate messagingTemplate; 
 
     @Override
     public String generateNextOrderId() {
@@ -104,7 +108,15 @@ public class SalesServiceImpl implements ISalesService {
         }).collect(Collectors.toList());
 
         order.setOrderDetails(details);
-        return orderRepository.save(order);
+        
+        // Lưu đơn hàng vào Database
+        Order savedOrder = orderRepository.save(order);
+
+        // <-- BẮN TÍN HIỆU WEBSOCKET CHO NHÀ BẾP Ở ĐÂY
+        // Gửi chữ "NEW_ORDER" vào đường ống "/topic/kitchen"
+        messagingTemplate.convertAndSend("/topic/kitchen", "NEW_ORDER");
+
+        return savedOrder;
     }
 
     @Override

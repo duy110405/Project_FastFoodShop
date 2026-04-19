@@ -109,7 +109,9 @@ public class InventoryImpl implements IInventoryService {
                 Ingredient ingredient = detail.getIngredient();
                 BigDecimal currentStock = getIngredientQuantityStock(ingredient);
                 BigDecimal qty = detail.getQuantityImport() == null ? BigDecimal.ZERO : detail.getQuantityImport();
+                BigDecimal importPrice = detail.getImportPrice() == null ? BigDecimal.ZERO : detail.getImportPrice();
                 setIngredientQuantityStock(ingredient, currentStock.add(qty));
+                ingredient.setImportPrice(importPrice);
                 ingredientRepository.save(ingredient);
             }
         }
@@ -286,10 +288,15 @@ public class InventoryImpl implements IInventoryService {
                 .imageUrlIngredient(getIngredientImageUrl(ingredient))
                 .ingredientName(getIngredientName(ingredient))
                 .unit(getIngredientUnit(ingredient))
+                .importPrice(getIngredientImportPrice(ingredient))
                 .currentStock(stock)
                 .minStock(BigDecimal.TEN)
                 .lowStock(stock.compareTo(BigDecimal.TEN) <= 0)
                 .build();
+    }
+
+    private BigDecimal getIngredientImportPrice(Ingredient ingredient) {
+        return ingredient.getImportPrice() == null ? BigDecimal.ZERO : ingredient.getImportPrice();
     }
 
     private BigDecimal getIngredientQuantityStock(Ingredient ingredient) {

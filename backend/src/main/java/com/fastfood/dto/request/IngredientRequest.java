@@ -13,4 +13,5 @@ public class IngredientRequest {
     String ingredientName;
     String unit;
     BigDecimal quantityStock;
+    BigDecimal importPrice;
 }

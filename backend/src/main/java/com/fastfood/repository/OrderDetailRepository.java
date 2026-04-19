@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.List;
 
 @Repository
@@ -72,5 +73,19 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
                 resolvedTo.plusDays(1).atStartOfDay()
         );
     }
+
+    @Query("""
+            SELECT COALESCE(SUM(fi.quantityUsed * od.quantity * COALESCE(i.importPrice, 0)), 0)
+            FROM SalesInvoice si
+            JOIN si.order o
+            JOIN o.orderDetails od
+            JOIN od.food f
+            JOIN f.foodIngredients fi
+            JOIN fi.ingredient i
+            WHERE si.paymentDate >= :fromDateTime
+              AND si.paymentDate < :toDateTime
+            """)
+    BigDecimal sumProductionCostOfPaidOrdersInRange(@Param("fromDateTime") LocalDateTime fromDateTime,
+                                                    @Param("toDateTime") LocalDateTime toDateTime);
 }
 

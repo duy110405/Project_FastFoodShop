@@ -14,6 +14,7 @@ const MenuAdmin = () => {
   const [foods, setFoods] = useState([]);
   const [categories, setCategories] = useState([]);
   const [ingredientsList, setIngredientsList] = useState([]);
+  const [foodCostsById, setFoodCostsById] = useState({});
   
   const [loading, setLoading] = useState(false); // Trạng thái chờ load data
   const [submitLoading, setSubmitLoading] = useState(false); // Trạng thái chờ nút Lưu
@@ -28,16 +29,26 @@ const MenuAdmin = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Chạy song song 3 API cho nhanh: Danh mục, Nguyên liệu và Món ăn
+      // Chạy song song 3 API chính: Danh mục, Nguyên liệu và Món ăn
       const [catRes, ingRes, foodRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/foodCategory`),
         axios.get(`${API_BASE_URL}/ingredient`), // API lấy danh sách kho
         axios.get(`${API_BASE_URL}/foods/menu`)   // API lấy list món ăn
       ]);
 
+      // API chi phí món là dữ liệu phụ, lỗi thì vẫn cho màn hình menu chạy bình thường.
+      let costs = [];
+      try {
+        const costRes = await axios.get(`${API_BASE_URL}/foods/costs`);
+        costs = costRes.data?.data || [];
+      } catch (costError) {
+        console.warn('Không tải được chi phí món ăn:', costError);
+      }
+
       setCategories(catRes.data.data || []);
       setIngredientsList(ingRes.data.data || []);
       setFoods(foodRes.data.data || []);
+      setFoodCostsById(Object.fromEntries(costs.map(item => [item.idFood, item])));
       
       // Mặc định chọn Tab đầu tiên nếu có danh mục
       if (catRes.data.data && catRes.data.data.length > 0 && activeTab === 'LH001') {
@@ -56,6 +67,7 @@ const MenuAdmin = () => {
   }, []);
 
   const filteredFoods = foods.filter(food => food.idCategory === activeTab);
+  const formatCurrency = (value) => Number(value || 0).toLocaleString('vi-VN');
 
   // Mở Modal (Sửa hoặc Thêm mới)
   const openModal = (food = null) => {
@@ -147,9 +159,23 @@ const MenuAdmin = () => {
                 <img src={food.imageUrlFood} alt={food.foodName} className="food-image" />
                 
                 <div className="food-info">
+                  {(() => {
+                    const costData = foodCostsById[food.idFood];
+                    return (
+                      <>
                   <h3 className="food-title">{food.foodName}</h3>
                   <div className="food-price">Giá: {food.unitPrice.toLocaleString('vi-VN')} đ</div>
                   <div className="food-desc">{food.description}</div>
+                        {costData && (
+                          <div className="food-cost-meta">
+                            <div>Chi phí: {formatCurrency(costData.productionCost)} đ</div>
+                            <div>Lãi gộp: {formatCurrency(costData.grossProfit)} đ</div>
+                            <div>Biên lợi nhuận: {Number(costData.marginPercent || 0).toFixed(1)}%</div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 <div className="food-actions">

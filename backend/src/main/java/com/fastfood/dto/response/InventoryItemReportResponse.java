@@ -19,6 +19,7 @@ public class InventoryItemReportResponse {
     String imageUrlIngredient;
     String ingredientName;
     String unit;
+    BigDecimal importPrice;
     BigDecimal currentStock;
     BigDecimal minStock;
     boolean lowStock;

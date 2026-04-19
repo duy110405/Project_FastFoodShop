@@ -5,7 +5,6 @@ import com.fastfood.dto.response.TopOrderedFoodResponse;
 import com.fastfood.repository.OrderDetailRepository;
 import com.fastfood.repository.OrderRepository;
 import com.fastfood.repository.SalesInvoiceRepository;
-import com.fastfood.repository.StockReceiptRepository;
 import com.fastfood.service.IAdminDashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -27,7 +26,6 @@ public class AdminDashboardServiceImpl implements IAdminDashboardService {
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final SalesInvoiceRepository salesInvoiceRepository;
-    private final StockReceiptRepository stockReceiptRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -49,12 +47,11 @@ public class AdminDashboardServiceImpl implements IAdminDashboardService {
 
         long orderCount = orderRepository.countOrdersInRange(fromDateTime, toDateTime);
 
-        BigDecimal totalImportCost = safeBigDecimal(stockReceiptRepository.sumImportCostInRange(resolvedFrom, resolvedTo));
-        long receiptCount = stockReceiptRepository.countReceiptsInRange(resolvedFrom, resolvedTo);
+        BigDecimal totalImportCost = safeBigDecimal(orderDetailRepository.sumProductionCostOfPaidOrdersInRange(fromDateTime, toDateTime));
 
         BigDecimal profit = revenue.subtract(totalImportCost);
         BigDecimal averageRevenue = divideOrZero(revenue, invoiceCount);
-        BigDecimal averageImportCost = divideOrZero(totalImportCost, receiptCount);
+        BigDecimal averageImportCost = divideOrZero(totalImportCost, invoiceCount);
 
         List<TopOrderedFoodResponse> topOrderedFoods = orderDetailRepository
                 .findTopOrderedFoodsInRange(fromDateTime, toDateTime, PageRequest.of(0, limitedTopN))

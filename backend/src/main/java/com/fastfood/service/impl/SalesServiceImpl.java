@@ -2,9 +2,14 @@ package com.fastfood.service.impl;
 
 import com.fastfood.dto.request.OrderRequest;
 import com.fastfood.dto.request.PaymentRequest;
+import com.fastfood.dto.response.CashierOrderDetailResponse;
+import com.fastfood.dto.response.CashierOrderItemResponse;
+import com.fastfood.dto.response.CashierPaymentResponse;
+import com.fastfood.dto.response.CashierTableStatusResponse;
 import com.fastfood.entity.catalog.Food;
 import com.fastfood.entity.catalog.FoodIngredient;
 import com.fastfood.entity.catalog.Ingredient;
+import com.fastfood.entity.system.User;
 import com.fastfood.entity.transaction.Order;
 import com.fastfood.entity.transaction.OrderDetail;
 import com.fastfood.entity.transaction.SalesInvoice;
@@ -12,6 +17,7 @@ import com.fastfood.repository.FoodRepository;
 import com.fastfood.repository.IngredientRepository;
 import com.fastfood.repository.OrderRepository;
 import com.fastfood.repository.SalesInvoiceRepository;
+import com.fastfood.repository.UserRepository;
 import com.fastfood.service.ISalesService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,17 +25,27 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class SalesServiceImpl implements ISalesService {
 
+    private static final Pattern TABLE_CODE_PATTERN = Pattern.compile("[A-Z]\\d{2}");
+
     private final OrderRepository orderRepository;
     private final FoodRepository foodRepository;
     private final SalesInvoiceRepository salesInvoiceRepository;
     private final IngredientRepository ingredientRepository;
+    private final UserRepository userRepository;
 
     @Override
     public String generateNextOrderId() {
@@ -54,15 +70,83 @@ public class SalesServiceImpl implements ISalesService {
         return orderRepository.findByStatus("PENDING")
                 .stream()
                 .map(Order::getTableNumber)
+                .map(this::normalizeTableNumber)
+                .filter(table -> table != null && !table.isBlank())
                 .collect(Collectors.toSet());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CashierTableStatusResponse> getTableStatuses() {
+        Set<String> occupiedTables = getOccupiedTableNumbers();
+        Set<String> configuredTables = getConfiguredTableCodesFromAccounts();
+
+        List<String> sortedTables = new ArrayList<>(configuredTables);
+        sortedTables.sort(String::compareTo);
+
+        return sortedTables.stream()
+                .map(table -> CashierTableStatusResponse.builder()
+                        .tableNumber(table)
+                        .unpaid(occupiedTables.contains(table))
+                        .build())
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CashierOrderDetailResponse getPendingOrderByTable(String tableNumber) {
+        String normalizedTable = normalizeTableNumber(tableNumber);
+
+        Order order = orderRepository.findPendingOrdersWithDetails().stream()
+                .filter(candidate -> normalizedTable.equals(normalizeTableNumber(candidate.getTableNumber())))
+                .sorted(Comparator.comparing(Order::getOrderTime, Comparator.nullsLast(Comparator.naturalOrder())))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Bàn này chưa có đơn chưa thanh toán"));
+
+        List<CashierOrderItemResponse> items = order.getOrderDetails().stream()
+                .filter(detail -> detail.getFood() != null)
+                .sorted(Comparator.comparing(OrderDetail::getId, Comparator.nullsLast(Comparator.naturalOrder())))
+                .map(detail -> {
+                    BigDecimal unitPrice = detail.getUnitPrice() == null ? BigDecimal.ZERO : detail.getUnitPrice();
+                    BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(detail.getQuantity() == null ? 0 : detail.getQuantity()));
+                    return CashierOrderItemResponse.builder()
+                            .orderDetailId(detail.getId())
+                            .foodId(detail.getFood().getIdFood())
+                            .foodName(detail.getFood().getFoodName())
+                            .imageUrlFood(detail.getFood().getImageUrlFood())
+                            .quantity(detail.getQuantity() == null ? 0 : detail.getQuantity())
+                            .unitPrice(unitPrice)
+                            .lineTotal(lineTotal)
+                            .build();
+                })
+                .toList();
+
+        BigDecimal totalAmount = items.stream()
+                .map(CashierOrderItemResponse::getLineTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return CashierOrderDetailResponse.builder()
+                .orderId(order.getIdOrder())
+                .tableNumber(normalizeTableNumber(order.getTableNumber()))
+                .customerName(order.getCustomerName())
+                .orderTime(order.getOrderTime())
+                .totalAmount(totalAmount)
+                .items(items)
+                .build();
     }
 
     @Override
     @Transactional
     public Order placeOrder(OrderRequest request) {
+        String normalizedTable = normalizeTableNumber(request.getTableNumber());
+        Set<String> configuredTables = getConfiguredTableCodesFromAccounts();
+        if (normalizedTable.isBlank() || !configuredTables.contains(normalizedTable)) {
+            throw new RuntimeException("Bàn không hợp lệ hoặc chưa được cấu hình account bàn");
+        }
+
         Order order = new Order();
         order.setIdOrder(generateNextOrderId());
-        order.setTableNumber(request.getTableNumber());
+        order.setTableNumber(normalizedTable);
         order.setCustomerName(request.getCustomerName());
         order.setOrderTime(LocalDateTime.now());
         order.setStatus("PENDING");
@@ -109,11 +193,11 @@ public class SalesServiceImpl implements ISalesService {
 
     @Override
     @Transactional
-    public SalesInvoice processPayment(PaymentRequest request) {
+    public CashierPaymentResponse processPayment(PaymentRequest request) {
         Order order = orderRepository.findById(request.getOrderId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
 
-        if ("PAID".equals(order.getStatus())) {
+        if (!"PENDING".equalsIgnoreCase(order.getStatus())) {
             throw new RuntimeException("Đơn hàng này đã được thanh toán");
         }
 
@@ -133,7 +217,86 @@ public class SalesServiceImpl implements ISalesService {
 
         order.setStatus("PAID");
         orderRepository.save(order);
-        
-        return invoice;
+
+        return CashierPaymentResponse.builder()
+                .invoiceId(invoice.getIdInvoice())
+                .orderId(order.getIdOrder())
+                .tableNumber(normalizeTableNumber(order.getTableNumber()))
+                .paymentMethod(invoice.getPaymentMethod())
+                .totalAmount(invoice.getTotalAmount())
+                .paymentDate(invoice.getPaymentDate())
+                .build();
+    }
+
+    private String normalizeTableNumber(String tableNumber) {
+        if (tableNumber == null || tableNumber.isBlank()) {
+            return "";
+        }
+
+        String trimmed = tableNumber.trim().toUpperCase(Locale.ROOT)
+                .replace("BÀN", "")
+                .replace("BAN", "")
+                .trim();
+
+        Matcher matcher = TABLE_CODE_PATTERN.matcher(trimmed);
+        if (matcher.find()) {
+            return matcher.group();
+        }
+
+        // Fallback cho account dạng số thuần: 01 -> N01
+        if (trimmed.matches("\\d{2}")) {
+            return "N" + trimmed;
+        }
+
+        if (trimmed.matches("[A-Z]\\d{2}")) {
+            return trimmed;
+        }
+
+        return "";
+    }
+
+    private Set<String> getConfiguredTableCodesFromAccounts() {
+        return userRepository.findAllWithRole().stream()
+                .filter(this::isTableRoleAccount)
+                .map(this::extractTableCodeFromAccount)
+                .filter(code -> !code.isBlank())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private boolean isTableRoleAccount(User user) {
+        if (user == null) {
+            return false;
+        }
+
+        String roleName = user.getRole() != null && user.getRole().getRoleName() != null
+                ? user.getRole().getRoleName().trim().toLowerCase(Locale.ROOT)
+                : "";
+
+        // Loại các role vận hành.
+        if (roleName.contains("admin") || roleName.contains("thu ngân") || roleName.contains("thu ngan")
+                || roleName.contains("bếp") || roleName.contains("bep")) {
+            return false;
+        }
+
+        // Ưu tiên role có từ khóa khách/bàn.
+        if (roleName.contains("khách") || roleName.contains("khach") || roleName.contains("ban") || roleName.contains("bàn")) {
+            return true;
+        }
+
+        // Fallback: account map ra mã bàn hợp lệ thì vẫn tính là account bàn.
+        return !extractTableCodeFromAccount(user).isBlank();
+    }
+
+    private String extractTableCodeFromAccount(User user) {
+        if (user == null) {
+            return "";
+        }
+
+        String fromFullName = normalizeTableNumber(user.getFullName());
+        if (!fromFullName.isBlank()) {
+            return fromFullName;
+        }
+
+        return normalizeTableNumber(user.getUsername());
     }
 }

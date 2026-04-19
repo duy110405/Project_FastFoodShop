@@ -2,6 +2,7 @@ package com.fastfood.controller;
 
 import com.fastfood.dto.ApiResponse;
 import com.fastfood.dto.request.FoodRequest;
+import com.fastfood.dto.response.FoodCostResponse;
 import com.fastfood.dto.response.FoodKitchenResponse;
 import com.fastfood.dto.response.FoodMenuResponse;
 import com.fastfood.service.IFoodService;
@@ -44,6 +45,16 @@ public class FoodController {
                 .data(foodService.getFoodForKitchen(idFood))
                 .build();
     }
+
+    @GetMapping("/costs")
+    public ApiResponse<List<FoodCostResponse>> getFoodCosts() {
+        return ApiResponse.<List<FoodCostResponse>>builder()
+                .code(200)
+                .message("Lấy chi phí sản xuất món ăn thành công")
+                .data(foodService.getFoodCosts())
+                .build();
+    }
+
     @PostMapping
     public ApiResponse<FoodKitchenResponse> createFood(@RequestBody FoodRequest request) {
         return ApiResponse.<FoodKitchenResponse>builder()

@@ -14,10 +14,11 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class StockMovementDetailResponse {
+public class InventoryConsumptionItemResponse {
     String ingredientId;
     String imageUrlIngredient;
     String ingredientName;
-    BigDecimal quantityImport;
-    BigDecimal importPrice;
+    String unit;
+    BigDecimal currentStock;
+    BigDecimal consumedQuantity;
 }

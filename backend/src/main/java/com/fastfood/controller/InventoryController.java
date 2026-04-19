@@ -3,7 +3,6 @@ package com.fastfood.controller;
 import java.time.LocalDate;
 import java.util.List;
 
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,13 +15,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fastfood.dto.ApiResponse;
 import com.fastfood.dto.request.StockReceiptRequest;
+import com.fastfood.dto.response.InventoryConsumptionGroupResponse;
 import com.fastfood.dto.response.InventoryItemReportResponse;
 import com.fastfood.dto.response.StockReceiptResponse;
 import com.fastfood.service.IInventoryService;
 
 @RestController
 @RequestMapping("/api/inventory")
-//@CrossOrigin("*")
 public class InventoryController {
 
     private final IInventoryService inventoryService;
@@ -102,6 +101,18 @@ public class InventoryController {
                 .code(200)
                 .message("Lấy danh sách nguyên liệu sắp hết thành công")
                 .data(inventoryService.getLowStockItems())
+                .build();
+    }
+
+    @GetMapping("/consumption-history")
+    public ApiResponse<List<InventoryConsumptionGroupResponse>> getConsumptionHistory(
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate
+    ) {
+        return ApiResponse.<List<InventoryConsumptionGroupResponse>>builder()
+                .code(200)
+                .message("Lấy lịch sử tiêu thụ nguyên liệu thành công")
+                .data(inventoryService.getConsumptionHistory(fromDate, toDate))
                 .build();
     }
 }

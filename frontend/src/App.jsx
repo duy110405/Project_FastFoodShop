@@ -10,10 +10,15 @@ import {
   LogoutOutlined,
   OrderedListOutlined
 } from '@ant-design/icons';
+
+// Các trang giao diện
 import FoodMenu from './pages/FoodMenu';
 import KitchenPage from './pages/KitchenPage';
 import PaymentPage from './pages/PaymentPage';
 import Login from './pages/Login';
+
+// Import trang MenuAdmin 
+import MenuAdmin from './pages/MenuAdmin'; 
 
 const DashboardPage = () => <div style={{ padding: 20 }}><h1>Màn hình Dashboard</h1></div>;
 const OrdersPage = () => <div style={{ padding: 20 }}><h1>Màn hình Đơn hàng</h1></div>;
@@ -24,12 +29,10 @@ const { Title } = Typography;
 
 const normalizeRole = (role) => {
   const normalized = (role || '').trim().toLowerCase();
-
   if (normalized === 'admin') return 'ADMIN';
   if (normalized === 'thu ngân' || normalized === 'thu ngan') return 'Thu ngân';
   if (normalized === 'bếp' || normalized === 'bep') return 'Bếp';
   if (normalized === 'khách hàng' || normalized === 'khach hang') return 'Khách hàng';
-
   return role || '';
 };
 
@@ -37,13 +40,10 @@ const getStoredRole = () => normalizeRole(localStorage.getItem('userRole'));
 
 const getRoleHomePath = (role) => {
   const normalizedRole = normalizeRole(role);
-
-  //  Thêm /admin vào đường dẫn mặc định của ADMIN
   if (normalizedRole === 'ADMIN') return '/admin/dashboard'; 
   if (normalizedRole === 'Thu ngân') return '/payment';
   if (normalizedRole === 'Bếp') return '/kitchen';
   if (normalizedRole === 'Khách hàng') return '/menu';
-
   return '/login';
 };
 
@@ -51,15 +51,10 @@ const isRoleNavigable = (role) => getRoleHomePath(role) !== '/login';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const role = getStoredRole();
-
-  if (!role) {
-    return <Navigate to="/login" replace />;
-  }
-
+  if (!role) return <Navigate to="/login" replace />;
   if (allowedRoles && !allowedRoles.map(normalizeRole).includes(role)) {
     return <Navigate to={getRoleHomePath(role)} replace />;
   }
-
   return children;
 };
 
@@ -67,14 +62,20 @@ const HomeRedirect = () => {
   return <Navigate to={getRoleHomePath(getStoredRole())} replace />;
 };
 
+// ========================================================
+//  TÁCH RIÊNG MENU CỦA ADMIN VÀ KHÁCH
+// ========================================================
 const menuItems = [
-  //  Thêm /admin vào các path của riêng ADMIN
+  // 1. Nhóm nút chỉ hiện cho ADMIN
   { key: 'dashboard', path: '/admin/dashboard', label: 'Dashboard', icon: <DashboardOutlined />, roles: ['ADMIN'] },
   { key: 'orders', path: '/admin/orders', label: 'Đơn hàng', icon: <OrderedListOutlined />, roles: ['ADMIN'] },
+  { key: 'admin-menu', path: '/admin/menu', label: 'Quản lý Menu', icon: <AppstoreOutlined />, roles: ['ADMIN'] }, // Sẽ mở MenuAdmin
   { key: 'inventory', path: '/admin/inventory', label: 'Kho', icon: <DatabaseOutlined />, roles: ['ADMIN'] },
   
-  // Các path dùng chung hoặc của role khác giữ nguyên
-  { key: 'menu', path: '/menu', label: 'Menu', icon: <AppstoreOutlined />, roles: ['ADMIN', 'Khách hàng'] },
+  // 2. Nhóm nút cho KHÁCH & THU NGÂN
+  { key: 'customer-menu', path: '/menu', label: 'Menu Đặt Món', icon: <AppstoreOutlined />, roles: ['Khách hàng', 'Thu ngân'] }, // Sẽ mở FoodMenu màu cam
+  
+  // 3. Nhóm nút cho BẾP
   { key: 'kitchen', path: '/kitchen', label: 'Bếp', icon: <FireOutlined />, roles: ['Bếp'] },
   { key: 'payment', path: '/payment', label: 'Thanh Toán', icon: <CreditCardOutlined />, roles: ['Thu ngân'] }
 ];
@@ -113,7 +114,7 @@ const MainLayout = () => {
 
       <Layout>
         <Header style={{ background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px' }}>
-          <Title level={4} style={{ margin: 0 }}>FastFood Team 4 Dashboard</Title>
+          <Title level={4} style={{ margin: 0 }}>FastFood Dashboard</Title>
           <Button icon={<LogoutOutlined />} onClick={handleLogout}>Đăng xuất</Button>
         </Header>
 
@@ -122,10 +123,6 @@ const MainLayout = () => {
             <Outlet />
           </div>
         </Content>
-
-        <Footer style={{ textAlign: 'center' }}>
-          FastFood Team 4 ©{new Date().getFullYear()} - UI designed with Ant Design
-        </Footer>
       </Layout>
     </Layout>
   );
@@ -138,29 +135,26 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/login"
-          element={role && isRoleNavigable(role) ? <Navigate to={roleHomePath} replace /> : <Login />}
-        />
+        <Route path="/login" element={role && isRoleNavigable(role) ? <Navigate to={roleHomePath} replace /> : <Login />} />
 
-        <Route
-          element={(
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          )}
-        >
+        <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           <Route path="/" element={<HomeRedirect />} />
           
-          {/* Gom nhóm các trang của Admin vào /admin */}
+          {/* ========================================================
+              CẤP ROUTE CHUẨN CHO ADMIN
+              ======================================================== */}
           <Route path="/admin">
             <Route path="dashboard" element={<ProtectedRoute allowedRoles={['ADMIN']}><DashboardPage /></ProtectedRoute>} />
             <Route path="orders" element={<ProtectedRoute allowedRoles={['ADMIN']}><OrdersPage /></ProtectedRoute>} />
+            
+            {/* Nhét MenuAdmin vào đường dẫn /admin/menu */}
+            <Route path="menu" element={<ProtectedRoute allowedRoles={['ADMIN']}><MenuAdmin /></ProtectedRoute>} />
+            
             <Route path="inventory" element={<ProtectedRoute allowedRoles={['ADMIN']}><InventoryPage /></ProtectedRoute>} />
           </Route>
 
-          {/* Các trang còn lại giữ nguyên ở thư mục gốc */}
-          <Route path="/menu" element={<ProtectedRoute allowedRoles={['ADMIN', 'Khách hàng']}><FoodMenu /></ProtectedRoute>} />
+          {/* Các trang của Role khác */}
+          <Route path="/menu" element={<ProtectedRoute allowedRoles={['Khách hàng', 'Thu ngân']}><FoodMenu /></ProtectedRoute>} />
           <Route path="/pos" element={<Navigate to="/menu" replace />} />
           <Route path="/kitchen" element={<ProtectedRoute allowedRoles={['Bếp']}><KitchenPage /></ProtectedRoute>} />
           <Route path="/payment" element={<ProtectedRoute allowedRoles={['Thu ngân']}><PaymentPage /></ProtectedRoute>} />

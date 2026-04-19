@@ -1,6 +1,5 @@
 package com.fastfood.service.impl;
 
-import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.LocalDate;
@@ -45,36 +44,28 @@ public class InventoryImpl implements IInventoryService {
     }
 
     @Override
-@Transactional
-public StockReceiptResponse createStockReceipt(StockReceiptRequest request) {
-    StockReceipt stockReceipt = StockReceipt.builder()
-            .idReceipt(generateNextId(stockReceiptRepository.findMaxIdReceipt(), "PN"))
-            .receiptDate(request.getReceiptDate())
-            .supplierName(request.getSupplierName())
-            .status(request.getStatus())
-            .createdBy(request.getCreatedBy())
-            .details(new ArrayList<>())
-            .build();
-
-    if (request.getDetails() != null) {
-        for (StockReceiptDetailRequest detailRequest : request.getDetails()) {
-            Ingredient ingredient = findIngredient(detailRequest.getIngredientId());
-
-            StockReceiptDetail detail = StockReceiptDetail.builder()
-                    .id(new StockReceiptDetailId(stockReceipt.getIdReceipt(), getIngredientId(ingredient)))
-                    .stockReceipt(stockReceipt)
-                    .ingredient(ingredient)
-                    .quantityImport(detailRequest.getQuantityImport())
-                    .importPrice(detailRequest.getImportPrice())
-                    .build();
-
-            stockReceipt.getDetails().add(detail);
+    @Transactional
+    public StockReceiptResponse createStockReceipt(StockReceiptRequest request) {
+        if (request.getDetails() == null || request.getDetails().isEmpty()) {
+            throw new RuntimeException("Phiếu nhập phải có ít nhất 1 nguyên liệu");
         }
-    }
 
-    StockReceipt saved = stockReceiptRepository.save(stockReceipt);
-    return toReceiptResponse(saved);
-}
+        StockReceipt stockReceipt = StockReceipt.builder()
+                .idReceipt(generateNextReceiptId(stockReceiptRepository.findMaxIdReceipt()))
+                .receiptDate(request.getReceiptDate())
+                .supplierName(request.getSupplierName())
+                .status(normalizeStatus(request.getStatus()))
+                .createdBy(request.getCreatedBy())
+                .details(new ArrayList<>())
+                .build();
+
+        for (StockReceiptDetailRequest detailRequest : request.getDetails()) {
+            stockReceipt.getDetails().add(toStockReceiptDetail(stockReceipt, detailRequest));
+        }
+
+        StockReceipt saved = stockReceiptRepository.save(stockReceipt);
+        return toReceiptResponse(saved);
+    }
 
     @Override
     public List<StockReceiptResponse> getAllStockReceipts() {
@@ -85,48 +76,47 @@ public StockReceiptResponse createStockReceipt(StockReceiptRequest request) {
     }
 
     @Override
-@Transactional
-public StockReceiptResponse updateStockReceipt(String idReceipt, StockReceiptRequest request) {
-    StockReceipt stockReceipt = stockReceiptRepository.findById(idReceipt)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu nhập: " + idReceipt));
+    @Transactional
+    public StockReceiptResponse updateStockReceipt(String idReceipt, StockReceiptRequest request) {
+        StockReceipt stockReceipt = stockReceiptRepository.findById(idReceipt)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu nhập: " + idReceipt));
 
-    String oldStatus = normalizeStatus(stockReceipt.getStatus());
-    String newStatus = normalizeStatus(request.getStatus());
+        String oldStatus = normalizeStatus(stockReceipt.getStatus());
+        String newStatus = normalizeStatus(request.getStatus());
 
-    // Chỉ cho cập nhật khi phiếu còn ở trạng thái CHỜ
-    if (!"CHO".equals(oldStatus)) {
-        throw new RuntimeException("Phiếu này đã cập nhật trạng thái, không thể thay đổi nữa");
-    }
-
-    if (request.getDetails() == null || request.getDetails().isEmpty()) {
-        throw new RuntimeException("Phiếu nhập phải có ít nhất 1 nguyên liệu");
-    }
-
-    stockReceipt.setReceiptDate(request.getReceiptDate());
-    stockReceipt.setSupplierName(request.getSupplierName());
-    stockReceipt.setStatus(request.getStatus());
-    stockReceipt.setCreatedBy(request.getCreatedBy());
-
-    // Chỉ cộng kho khi NHẬN HÀNG
-    if ("DA_NHAP".equals(newStatus)) {
-        for (StockReceiptDetailRequest detailRequest : request.getDetails()) {
-            Ingredient ingredient = findIngredient(detailRequest.getIngredientId());
-
-            BigDecimal currentStock = getIngredientQuantityStock(ingredient);
-            BigDecimal qty = detailRequest.getQuantityImport() == null
-                    ? BigDecimal.ZERO
-                    : detailRequest.getQuantityImport();
-
-            setIngredientQuantityStock(ingredient, currentStock.add(qty));
-            ingredientRepository.save(ingredient);
+        // Chỉ cho cập nhật khi phiếu còn ở trạng thái chờ.
+        if (!"CHO".equals(oldStatus)) {
+            throw new RuntimeException("Phiếu này đã cập nhật trạng thái, không thể thay đổi nữa");
         }
+
+        if (request.getDetails() == null || request.getDetails().isEmpty()) {
+            throw new RuntimeException("Phiếu nhập phải có ít nhất 1 nguyên liệu");
+        }
+
+        stockReceipt.setReceiptDate(request.getReceiptDate());
+        stockReceipt.setSupplierName(request.getSupplierName());
+        stockReceipt.setStatus(newStatus);
+        stockReceipt.setCreatedBy(request.getCreatedBy());
+
+        stockReceipt.getDetails().clear();
+        for (StockReceiptDetailRequest detailRequest : request.getDetails()) {
+            stockReceipt.getDetails().add(toStockReceiptDetail(stockReceipt, detailRequest));
+        }
+
+        // Chỉ cộng kho khi chuyển sang đã nhập hàng.
+        if ("DA_NHAP".equals(newStatus)) {
+            for (StockReceiptDetail detail : stockReceipt.getDetails()) {
+                Ingredient ingredient = detail.getIngredient();
+                BigDecimal currentStock = getIngredientQuantityStock(ingredient);
+                BigDecimal qty = detail.getQuantityImport() == null ? BigDecimal.ZERO : detail.getQuantityImport();
+                setIngredientQuantityStock(ingredient, currentStock.add(qty));
+                ingredientRepository.save(ingredient);
+            }
+        }
+
+        StockReceipt saved = stockReceiptRepository.save(stockReceipt);
+        return toReceiptResponse(saved);
     }
-
-    // Nếu HOÀN TRẢ thì không cộng kho, chỉ đổi trạng thái
-
-    StockReceipt saved = stockReceiptRepository.save(stockReceipt);
-    return toReceiptResponse(saved);
-}
 
     @Override
     @Transactional
@@ -134,7 +124,8 @@ public StockReceiptResponse updateStockReceipt(String idReceipt, StockReceiptReq
         StockReceipt stockReceipt = stockReceiptRepository.findById(idReceipt)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu nhập: " + idReceipt));
 
-        if (stockReceipt.getDetails() != null) {
+        // Chỉ trừ kho khi phiếu đã từng cộng kho (DA_NHAP).
+        if ("DA_NHAP".equals(normalizeStatus(stockReceipt.getStatus())) && stockReceipt.getDetails() != null) {
             for (StockReceiptDetail detail : stockReceipt.getDetails()) {
                 Ingredient ingredient = detail.getIngredient();
                 BigDecimal currentStock = getIngredientQuantityStock(ingredient);
@@ -228,12 +219,24 @@ public StockReceiptResponse updateStockReceipt(String idReceipt, StockReceiptReq
         return result;
     }
 
+    private StockReceiptDetail toStockReceiptDetail(StockReceipt stockReceipt, StockReceiptDetailRequest detailRequest) {
+        Ingredient ingredient = findIngredient(detailRequest.getIngredientId());
+        return StockReceiptDetail.builder()
+                .id(new StockReceiptDetailId(stockReceipt.getIdReceipt(), ingredient.getIdIngredient()))
+                .stockReceipt(stockReceipt)
+                .ingredient(ingredient)
+                .quantityImport(detailRequest.getQuantityImport())
+                .importPrice(detailRequest.getImportPrice())
+                .build();
+    }
+
     private Ingredient findIngredient(String idIngredient) {
         return ingredientRepository.findById(idIngredient)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nguyên liệu: " + idIngredient));
     }
 
-    private String generateNextId(String maxId, String prefix) {
+    private String generateNextReceiptId(String maxId) {
+        String prefix = "PN";
         if (maxId == null) {
             return prefix + "001";
         }
@@ -290,63 +293,27 @@ public StockReceiptResponse updateStockReceipt(String idReceipt, StockReceiptReq
     }
 
     private BigDecimal getIngredientQuantityStock(Ingredient ingredient) {
-        try {
-            Method method = ingredient.getClass().getMethod("getQuantityStock");
-            Object value = method.invoke(ingredient);
-            return value == null ? BigDecimal.ZERO : (BigDecimal) value;
-        } catch (Exception ignored) {
-        }
-
-        return BigDecimal.ZERO;
+        return ingredient.getQuantityStock() == null ? BigDecimal.ZERO : ingredient.getQuantityStock();
     }
 
     private void setIngredientQuantityStock(Ingredient ingredient, BigDecimal value) {
-        try {
-            Method method = ingredient.getClass().getMethod("setQuantityStock", BigDecimal.class);
-            method.invoke(ingredient, value);
-        } catch (Exception e) {
-            throw new RuntimeException("Không thể cập nhật số lượng tồn kho cho nguyên liệu");
-        }
+        ingredient.setQuantityStock(value);
     }
 
     private String getIngredientId(Ingredient ingredient) {
-        try {
-            Method method = ingredient.getClass().getMethod("getIdIngredient");
-            Object value = method.invoke(ingredient);
-            return value == null ? null : value.toString();
-        } catch (Exception e) {
-            throw new RuntimeException("Không thể lấy mã nguyên liệu");
-        }
+        return ingredient.getIdIngredient();
     }
 
     private String getIngredientName(Ingredient ingredient) {
-        try {
-            Method method = ingredient.getClass().getMethod("getIngredientName");
-            Object value = method.invoke(ingredient);
-            return value == null ? null : value.toString();
-        } catch (Exception e) {
-            return null;
-        }
+        return ingredient.getIngredientName();
     }
 
     private String getIngredientUnit(Ingredient ingredient) {
-        try {
-            Method method = ingredient.getClass().getMethod("getUnit");
-            Object value = method.invoke(ingredient);
-            return value == null ? null : value.toString();
-        } catch (Exception e) {
-            return null;
-        }
+        return ingredient.getUnit();
     }
 
     private String getIngredientImageUrl(Ingredient ingredient) {
-        try {
-            Method method = ingredient.getClass().getMethod("getImageUrlIngredient");
-            Object value = method.invoke(ingredient);
-            return value == null ? null : value.toString();
-        } catch (Exception e) {
-            return null;
-        }
+        return ingredient.getImageUrlIngredient();
     }
 
     private LocalDate toLocalDate(Object value) {
@@ -361,17 +328,15 @@ public StockReceiptResponse updateStockReceipt(String idReceipt, StockReceiptReq
         if (value instanceof BigDecimal bigDecimal) return bigDecimal;
         return new BigDecimal(value.toString());
     }
-
-
     private String normalizeStatus(String status) {
-    if (status == null) return "CHO";
+        if (status == null) return "CHO";
 
-    String value = status.trim().toUpperCase();
+        String value = status.trim().toUpperCase();
 
-    if ("PENDING".equals(value) || "CHO".equals(value)) return "CHO";
-    if ("RECEIVED".equals(value) || "DA_NHAP".equals(value) || "NHAN_HANG".equals(value)) return "DA_NHAP";
-    if ("CANCELLED".equals(value) || "RETURNED".equals(value) || "HOAN_TRA".equals(value)) return "HOAN_TRA";
+        if ("PENDING".equals(value) || "CHO".equals(value)) return "CHO";
+        if ("RECEIVED".equals(value) || "DA_NHAP".equals(value) || "NHAN_HANG".equals(value)) return "DA_NHAP";
+        if ("CANCELLED".equals(value) || "RETURNED".equals(value) || "HOAN_TRA".equals(value)) return "HOAN_TRA";
 
-    return value;
-}
+        return value;
+    }
 }

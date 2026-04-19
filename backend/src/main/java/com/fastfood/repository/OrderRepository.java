@@ -3,8 +3,10 @@ package com.fastfood.repository;
 import com.fastfood.entity.transaction.Order;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -26,4 +28,13 @@ public interface OrderRepository extends JpaRepository<Order, String> {
             "WHERE o.status = 'PENDING' " +
             "ORDER BY o.orderTime ASC")
     List<Order> findPendingOrdersWithDetails();
+
+    @Query("""
+            SELECT COUNT(o)
+            FROM Order o
+            WHERE o.orderTime >= :fromDateTime
+              AND o.orderTime < :toDateTime
+            """)
+    long countOrdersInRange(@Param("fromDateTime") LocalDateTime fromDateTime,
+                            @Param("toDateTime") LocalDateTime toDateTime);
 }

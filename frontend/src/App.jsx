@@ -16,13 +16,13 @@ import FoodMenu from './pages/FoodMenu';
 import KitchenPage from './pages/KitchenPage';
 import PaymentPage from './pages/PaymentPage';
 import Login from './pages/Login';
+import AdminDashboard from './pages/AdminDashboard';
+import InventoryPage from './pages/InventoryPage';
 
 // Import trang MenuAdmin 
 import MenuAdmin from './pages/MenuAdmin'; 
 
-const DashboardPage = () => <div style={{ padding: 20 }}><h1>Màn hình Dashboard</h1></div>;
 const OrdersPage = () => <div style={{ padding: 20 }}><h1>Màn hình Đơn hàng</h1></div>;
-const InventoryPage = () => <div style={{ padding: 20 }}><h1>Màn hình Kho (Chờ code...)</h1></div>;
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title } = Typography;
@@ -144,7 +144,7 @@ function App() {
               CẤP ROUTE CHUẨN CHO ADMIN
               ======================================================== */}
           <Route path="/admin">
-            <Route path="dashboard" element={<ProtectedRoute allowedRoles={['ADMIN']}><DashboardPage /></ProtectedRoute>} />
+            <Route path="dashboard" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
             <Route path="orders" element={<ProtectedRoute allowedRoles={['ADMIN']}><OrdersPage /></ProtectedRoute>} />
             
             {/* Nhét MenuAdmin vào đường dẫn /admin/menu */}

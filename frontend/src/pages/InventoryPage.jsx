@@ -3,7 +3,7 @@ import { message, Empty, Spin } from 'antd';
 import axios from 'axios';
 import '../css/InventoryPage.css';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'http://localhost:8081/api';
 const DEFAULT_RECEIPT_STATUS = 'CHO';
 
 const IngredientImage = ({ src, alt }) => {

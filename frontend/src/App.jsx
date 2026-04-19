@@ -38,7 +38,8 @@ const getStoredRole = () => normalizeRole(localStorage.getItem('userRole'));
 const getRoleHomePath = (role) => {
   const normalizedRole = normalizeRole(role);
 
-  if (normalizedRole === 'ADMIN') return '/dashboard';
+  //  Thêm /admin vào đường dẫn mặc định của ADMIN
+  if (normalizedRole === 'ADMIN') return '/admin/dashboard'; 
   if (normalizedRole === 'Thu ngân') return '/payment';
   if (normalizedRole === 'Bếp') return '/kitchen';
   if (normalizedRole === 'Khách hàng') return '/menu';
@@ -67,10 +68,13 @@ const HomeRedirect = () => {
 };
 
 const menuItems = [
-  { key: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: <DashboardOutlined />, roles: ['ADMIN'] },
-  { key: 'orders', path: '/orders', label: 'Đơn hàng', icon: <OrderedListOutlined />, roles: ['ADMIN'] },
+  //  Thêm /admin vào các path của riêng ADMIN
+  { key: 'dashboard', path: '/admin/dashboard', label: 'Dashboard', icon: <DashboardOutlined />, roles: ['ADMIN'] },
+  { key: 'orders', path: '/admin/orders', label: 'Đơn hàng', icon: <OrderedListOutlined />, roles: ['ADMIN'] },
+  { key: 'inventory', path: '/admin/inventory', label: 'Kho', icon: <DatabaseOutlined />, roles: ['ADMIN'] },
+  
+  // Các path dùng chung hoặc của role khác giữ nguyên
   { key: 'menu', path: '/menu', label: 'Menu', icon: <AppstoreOutlined />, roles: ['ADMIN', 'Khách hàng'] },
-  { key: 'inventory', path: '/inventory', label: 'Kho', icon: <DatabaseOutlined />, roles: ['ADMIN'] },
   { key: 'kitchen', path: '/kitchen', label: 'Bếp', icon: <FireOutlined />, roles: ['Bếp'] },
   { key: 'payment', path: '/payment', label: 'Thanh Toán', icon: <CreditCardOutlined />, roles: ['Thu ngân'] }
 ];
@@ -147,11 +151,17 @@ function App() {
           )}
         >
           <Route path="/" element={<HomeRedirect />} />
-          <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['ADMIN']}><DashboardPage /></ProtectedRoute>} />
-          <Route path="/orders" element={<ProtectedRoute allowedRoles={['ADMIN']}><OrdersPage /></ProtectedRoute>} />
+          
+          {/* Gom nhóm các trang của Admin vào /admin */}
+          <Route path="/admin">
+            <Route path="dashboard" element={<ProtectedRoute allowedRoles={['ADMIN']}><DashboardPage /></ProtectedRoute>} />
+            <Route path="orders" element={<ProtectedRoute allowedRoles={['ADMIN']}><OrdersPage /></ProtectedRoute>} />
+            <Route path="inventory" element={<ProtectedRoute allowedRoles={['ADMIN']}><InventoryPage /></ProtectedRoute>} />
+          </Route>
+
+          {/* Các trang còn lại giữ nguyên ở thư mục gốc */}
           <Route path="/menu" element={<ProtectedRoute allowedRoles={['ADMIN', 'Khách hàng']}><FoodMenu /></ProtectedRoute>} />
           <Route path="/pos" element={<Navigate to="/menu" replace />} />
-          <Route path="/inventory" element={<ProtectedRoute allowedRoles={['ADMIN']}><InventoryPage /></ProtectedRoute>} />
           <Route path="/kitchen" element={<ProtectedRoute allowedRoles={['Bếp']}><KitchenPage /></ProtectedRoute>} />
           <Route path="/payment" element={<ProtectedRoute allowedRoles={['Thu ngân']}><PaymentPage /></ProtectedRoute>} />
         </Route>

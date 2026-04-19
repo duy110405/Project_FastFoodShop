@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.fastfood.dto.request.StockReceiptRequest;
+import com.fastfood.dto.response.InventoryConsumptionGroupResponse;
 import com.fastfood.dto.response.InventoryItemReportResponse;
 import com.fastfood.dto.response.StockReceiptResponse;
 
@@ -24,4 +25,6 @@ public interface IInventoryService {
     List<InventoryItemReportResponse> getInventoryReport();
 
     List<InventoryItemReportResponse> getLowStockItems();
+
+    List<InventoryConsumptionGroupResponse> getConsumptionHistory(LocalDate fromDate, LocalDate toDate);
 }

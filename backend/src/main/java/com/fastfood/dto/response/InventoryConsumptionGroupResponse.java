@@ -1,6 +1,7 @@
 package com.fastfood.dto.response;
 
-import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -14,10 +15,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class StockMovementDetailResponse {
-    String ingredientId;
-    String imageUrlIngredient;
-    String ingredientName;
-    BigDecimal quantityImport;
-    BigDecimal importPrice;
+public class InventoryConsumptionGroupResponse {
+    LocalDate date;
+    List<InventoryConsumptionItemResponse> items;
 }

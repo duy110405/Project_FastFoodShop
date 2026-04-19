@@ -2,14 +2,19 @@ package com.fastfood.service.impl;
 
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
 import com.fastfood.dto.request.StockReceiptDetailRequest;
 import com.fastfood.dto.request.StockReceiptRequest;
+import com.fastfood.dto.response.InventoryConsumptionGroupResponse;
+import com.fastfood.dto.response.InventoryConsumptionItemResponse;
 import com.fastfood.dto.response.InventoryItemReportResponse;
 import com.fastfood.dto.response.StockMovementDetailResponse;
 import com.fastfood.dto.response.StockReceiptResponse;
@@ -18,6 +23,7 @@ import com.fastfood.entity.transaction.StockReceipt;
 import com.fastfood.entity.transaction.StockReceiptDetail;
 import com.fastfood.entity.transaction.StockReceiptDetailId;
 import com.fastfood.repository.IngredientRepository;
+import com.fastfood.repository.OrderDetailRepository;
 import com.fastfood.repository.StockReceiptRepository;
 import com.fastfood.service.IInventoryService;
 
@@ -28,11 +34,14 @@ public class InventoryImpl implements IInventoryService {
 
     private final IngredientRepository ingredientRepository;
     private final StockReceiptRepository stockReceiptRepository;
+    private final OrderDetailRepository orderDetailRepository;
 
     public InventoryImpl(IngredientRepository ingredientRepository,
-                         StockReceiptRepository stockReceiptRepository) {
+                         StockReceiptRepository stockReceiptRepository,
+                         OrderDetailRepository orderDetailRepository) {
         this.ingredientRepository = ingredientRepository;
         this.stockReceiptRepository = stockReceiptRepository;
+        this.orderDetailRepository = orderDetailRepository;
     }
 
     @Override
@@ -192,6 +201,51 @@ public class InventoryImpl implements IInventoryService {
                 .toList();
     }
 
+    @Override
+    public List<InventoryConsumptionGroupResponse> getConsumptionHistory(LocalDate fromDate, LocalDate toDate) {
+        List<Object[]> rows = orderDetailRepository.getIngredientConsumptionHistory(fromDate, toDate);
+
+        Map<LocalDate, List<InventoryConsumptionItemResponse>> grouped = new LinkedHashMap<>();
+
+        for (Object[] row : rows) {
+            LocalDate date = toLocalDate(row[0]);
+            if (date == null) {
+                continue;
+            }
+
+            String ingredientId = row[1] != null ? row[1].toString() : null;
+            String imageUrlIngredient = row[2] != null ? row[2].toString() : null;
+            String ingredientName = row[3] != null ? row[3].toString() : null;
+            String unit = row[4] != null ? row[4].toString() : null;
+            BigDecimal currentStock = toBigDecimal(row[5]);
+            BigDecimal consumedQuantity = toBigDecimal(row[6]);
+
+            grouped.computeIfAbsent(date, k -> new ArrayList<>())
+                    .add(
+                            InventoryConsumptionItemResponse.builder()
+                                    .ingredientId(ingredientId)
+                                    .imageUrlIngredient(imageUrlIngredient)
+                                    .ingredientName(ingredientName)
+                                    .unit(unit)
+                                    .currentStock(currentStock)
+                                    .consumedQuantity(consumedQuantity)
+                                    .build()
+                    );
+        }
+
+        List<InventoryConsumptionGroupResponse> result = new ArrayList<>();
+        for (Map.Entry<LocalDate, List<InventoryConsumptionItemResponse>> entry : grouped.entrySet()) {
+            result.add(
+                    InventoryConsumptionGroupResponse.builder()
+                            .date(entry.getKey())
+                            .items(entry.getValue())
+                            .build()
+            );
+        }
+
+        return result;
+    }
+
     private Ingredient findIngredient(String idIngredient) {
         return ingredientRepository.findById(idIngredient)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy nguyên liệu: " + idIngredient));
@@ -220,6 +274,7 @@ public class InventoryImpl implements IInventoryService {
                 detailResponses.add(
                         StockMovementDetailResponse.builder()
                                 .ingredientId(getIngredientId(detail.getIngredient()))
+                                .imageUrlIngredient(getIngredientImageUrl(detail.getIngredient()))
                                 .ingredientName(getIngredientName(detail.getIngredient()))
                                 .quantityImport(detail.getQuantityImport())
                                 .importPrice(detail.getImportPrice())
@@ -243,6 +298,7 @@ public class InventoryImpl implements IInventoryService {
 
         return InventoryItemReportResponse.builder()
                 .ingredientId(getIngredientId(ingredient))
+                .imageUrlIngredient(getIngredientImageUrl(ingredient))
                 .ingredientName(getIngredientName(ingredient))
                 .unit(getIngredientUnit(ingredient))
                 .currentStock(stock)
@@ -259,17 +315,6 @@ public class InventoryImpl implements IInventoryService {
         } catch (Exception ignored) {
         }
 
-        try {
-            Method method = ingredient.getClass().getMethod("getQuantity");
-            Object value = method.invoke(ingredient);
-            if (value == null) return BigDecimal.ZERO;
-            if (value instanceof BigDecimal bigDecimal) return bigDecimal;
-            if (value instanceof Integer integer) return BigDecimal.valueOf(integer);
-            if (value instanceof Long longValue) return BigDecimal.valueOf(longValue);
-            if (value instanceof Double doubleValue) return BigDecimal.valueOf(doubleValue);
-        } catch (Exception ignored) {
-        }
-
         return BigDecimal.ZERO;
     }
 
@@ -277,58 +322,61 @@ public class InventoryImpl implements IInventoryService {
         try {
             Method method = ingredient.getClass().getMethod("setQuantityStock", BigDecimal.class);
             method.invoke(ingredient, value);
-            return;
-        } catch (Exception ignored) {
-        }
-
-        try {
-            Method method = ingredient.getClass().getMethod("setQuantity", BigDecimal.class);
-            method.invoke(ingredient, value);
-            return;
-        } catch (Exception ignored) {
-        }
-
-        try {
-            Method method = ingredient.getClass().getMethod("setQuantity", Integer.class);
-            method.invoke(ingredient, value.intValue());
-        } catch (Exception ignored) {
-            throw new RuntimeException("Ingredient entity chưa có setter phù hợp cho tồn kho");
+        } catch (Exception e) {
+            throw new RuntimeException("Không thể cập nhật số lượng tồn kho cho nguyên liệu");
         }
     }
 
     private String getIngredientId(Ingredient ingredient) {
         try {
-            return (String) ingredient.getClass().getMethod("getIdIngredient").invoke(ingredient);
-        } catch (Exception ignored) {
+            Method method = ingredient.getClass().getMethod("getIdIngredient");
+            Object value = method.invoke(ingredient);
+            return value == null ? null : value.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Không thể lấy mã nguyên liệu");
         }
-
-        try {
-            return (String) ingredient.getClass().getMethod("getIngredientId").invoke(ingredient);
-        } catch (Exception ignored) {
-        }
-
-        throw new RuntimeException("Ingredient entity chưa có getter id phù hợp");
     }
 
     private String getIngredientName(Ingredient ingredient) {
         try {
-            return (String) ingredient.getClass().getMethod("getIngredientName").invoke(ingredient);
-        } catch (Exception ignored) {
+            Method method = ingredient.getClass().getMethod("getIngredientName");
+            Object value = method.invoke(ingredient);
+            return value == null ? null : value.toString();
+        } catch (Exception e) {
+            return null;
         }
-
-        try {
-            return (String) ingredient.getClass().getMethod("getNameIngredient").invoke(ingredient);
-        } catch (Exception ignored) {
-        }
-
-        return null;
     }
 
     private String getIngredientUnit(Ingredient ingredient) {
         try {
-            return (String) ingredient.getClass().getMethod("getUnit").invoke(ingredient);
-        } catch (Exception ignored) {
+            Method method = ingredient.getClass().getMethod("getUnit");
+            Object value = method.invoke(ingredient);
+            return value == null ? null : value.toString();
+        } catch (Exception e) {
+            return null;
         }
-        return null;
+    }
+
+    private String getIngredientImageUrl(Ingredient ingredient) {
+        try {
+            Method method = ingredient.getClass().getMethod("getImageUrlIngredient");
+            Object value = method.invoke(ingredient);
+            return value == null ? null : value.toString();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private LocalDate toLocalDate(Object value) {
+        if (value == null) return null;
+        if (value instanceof LocalDate localDate) return localDate;
+        if (value instanceof Date sqlDate) return sqlDate.toLocalDate();
+        return LocalDate.parse(value.toString());
+    }
+
+    private BigDecimal toBigDecimal(Object value) {
+        if (value == null) return BigDecimal.ZERO;
+        if (value instanceof BigDecimal bigDecimal) return bigDecimal;
+        return new BigDecimal(value.toString());
     }
 }

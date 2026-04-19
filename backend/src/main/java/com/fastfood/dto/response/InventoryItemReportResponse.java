@@ -16,6 +16,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class InventoryItemReportResponse {
     String ingredientId;
+    String imageUrlIngredient;
     String ingredientName;
     String unit;
     BigDecimal currentStock;

@@ -10,14 +10,16 @@ import {
   LogoutOutlined,
   OrderedListOutlined
 } from '@ant-design/icons';
+
 import FoodMenu from './pages/FoodMenu';
 import KitchenPage from './pages/KitchenPage';
 import PaymentPage from './pages/PaymentPage';
 import Login from './pages/Login';
+import InventoryPage from './pages/InventoryPage';
+import './App.css';
 
 const DashboardPage = () => <div style={{ padding: 20 }}><h1>Màn hình Dashboard</h1></div>;
 const OrdersPage = () => <div style={{ padding: 20 }}><h1>Màn hình Đơn hàng</h1></div>;
-const InventoryPage = () => <div style={{ padding: 20 }}><h1>Màn hình Kho (Chờ code...)</h1></div>;
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title } = Typography;
@@ -92,13 +94,13 @@ const MainLayout = () => {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider theme="dark" breakpoint="lg" collapsedWidth="0">
-        <div style={{ height: 32, margin: 16, background: 'rgba(255, 255, 255, 0.2)', borderRadius: 6, display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold' }}>
+    <Layout className="faf-layout">
+      <Sider className="faf-sider" theme="dark" breakpoint="lg" collapsedWidth="0">
+        <div className="faf-logo">
           HỆ THỐNG POS
         </div>
 
-        <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]}>
+        <Menu className="faf-menu" theme="dark" mode="inline" selectedKeys={[selectedKey]}>
           {visibleMenuItems.map((item) => (
             <Menu.Item key={item.key} icon={item.icon}>
               <Link to={item.path}>{item.label}</Link>
@@ -107,20 +109,24 @@ const MainLayout = () => {
         </Menu>
       </Sider>
 
-      <Layout>
-        <Header style={{ background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px' }}>
-          <Title level={4} style={{ margin: 0 }}>FastFood Team 4 Dashboard</Title>
-          <Button icon={<LogoutOutlined />} onClick={handleLogout}>Đăng xuất</Button>
+      <Layout className="faf-main">
+        <Header className="faf-header">
+          <Title level={4} className="faf-title">
+            FastFood Team 4 Dashboard
+          </Title>
+          <Button className="faf-logout-btn" icon={<LogoutOutlined />} onClick={handleLogout}>
+            Đăng xuất
+          </Button>
         </Header>
 
-        <Content style={{ margin: '24px 16px 0' }}>
-          <div style={{ minHeight: 360, background: '#fff', borderRadius: 8 }}>
+        <Content className="faf-content">
+          <div className="faf-content-box">
             <Outlet />
           </div>
         </Content>
 
-        <Footer style={{ textAlign: 'center' }}>
-          FastFood Team 4 ©{new Date().getFullYear()} - UI designed with Ant Design
+        <Footer className="faf-footer">
+          FastFood Team 4 ©{new Date().getFullYear()} - FAF POS
         </Footer>
       </Layout>
     </Layout>

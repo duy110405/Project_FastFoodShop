@@ -1,13 +1,18 @@
 package com.fastfood.entity.catalog;
 
+import java.math.BigDecimal;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.FieldDefaults;
-
-import java.math.BigDecimal;
 
 @Entity
 @Table(name = "ingredients")
@@ -23,7 +28,7 @@ public class Ingredient {
     @Column(name = "id_ingredient", length = 20)
     String idIngredient;
 
-    @Column(name = "image_url_Ingredient", length = 500)
+    @Column(name = "image_url_ingredient", length = 500)
     private String imageUrlIngredient;
 
     @Column(name = "ingredient_name", nullable = false, length = 100)

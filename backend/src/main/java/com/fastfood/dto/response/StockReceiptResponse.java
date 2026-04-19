@@ -17,6 +17,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class StockReceiptResponse {
     String idReceipt;
+    String imageUrlIngredient;
     LocalDate receiptDate;
     String supplierName;
     String status;

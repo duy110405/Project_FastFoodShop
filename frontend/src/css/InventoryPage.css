@@ -110,7 +110,9 @@
   display: flex;
   gap: 12px;
   justify-content: flex-end;
+  align-items: center;
   margin-top: 12px;
+  flex-wrap: wrap;
 }
 
 .inventory-card {
@@ -286,12 +288,6 @@
   margin-left: auto;
   font-size: 18px;
   color: var(--faf-primary-dark);
-}
-
-.inventory-bottom-actions {
-  display: flex;
-  justify-content: center;
-  padding-bottom: 16px;
 }
 
 .create-receipt-page {

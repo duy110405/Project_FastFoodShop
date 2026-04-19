@@ -180,13 +180,16 @@ function ImportHistoryTab({
         </div>
 
         <div className="inventory-search-actions">
-          <button type="button" className="btn btn-primary" onClick={handleSearch}>
-            Tìm kiếm
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={handleReset}>
-            Làm mới
-          </button>
-        </div>
+  <button type="button" className="btn btn-primary" onClick={handleSearch}>
+    Tìm kiếm
+  </button>
+  <button type="button" className="btn btn-secondary" onClick={handleReset}>
+    Làm mới
+  </button>
+  <button type="button" className="btn btn-primary" onClick={onCreateNew}>
+    Tạo phiếu mới
+  </button>
+</div>
       </div>
 
       {!receipts.length ? (
@@ -274,11 +277,6 @@ function ImportHistoryTab({
         })
       )}
 
-      <div className="inventory-bottom-actions">
-        <button type="button" className="btn btn-primary" onClick={onCreateNew}>
-          Tạo phiếu mới
-        </button>
-      </div>
     </div>
   );
 }
@@ -647,12 +645,12 @@ export default function InventoryPage() {
     fetchConsumptionHistory();
   }, []);
 
-  const handleCreated = async () => {
-    setImportMode('history');
-    await fetchInventoryReport();
-    await fetchReceipts();
-    await fetchConsumptionHistory();
-  };
+const handleCreated = async () => {
+  setImportMode('history');
+  await fetchInventoryReport();
+  await fetchReceipts();
+  await fetchConsumptionHistory();
+};
 
   const handleUpdateStatus = async (receipt, nextStatus) => {
     if (!isPendingStatus(receipt.status)) {
@@ -673,12 +671,14 @@ export default function InventoryPage() {
     };
 
     try {
-      setUpdatingReceiptId(receipt.idReceipt);
-      await axios.put(`${API_BASE_URL}/inventory/receipts/${receipt.idReceipt}`, payload);
-      message.success('Cập nhật trạng thái phiếu thành công');
-      await fetchReceipts();
-      await fetchInventoryReport();
-    } catch (err) {
+  setUpdatingReceiptId(receipt.idReceipt);
+  await axios.put(`${API_BASE_URL}/inventory/receipts/${receipt.idReceipt}`, payload);
+  message.success('Cập nhật trạng thái phiếu thành công');
+
+  await fetchReceipts();
+  await fetchInventoryReport();
+  await fetchConsumptionHistory();
+} catch (err) {
       console.error(err);
       message.error(err.response?.data?.message || 'Cập nhật trạng thái thất bại');
     } finally {

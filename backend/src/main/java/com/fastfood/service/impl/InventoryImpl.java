@@ -45,44 +45,36 @@ public class InventoryImpl implements IInventoryService {
     }
 
     @Override
-    @Transactional
-    public StockReceiptResponse createStockReceipt(StockReceiptRequest request) {
-        StockReceipt stockReceipt = StockReceipt.builder()
-                .idReceipt(generateNextId(stockReceiptRepository.findMaxIdReceipt(), "PN"))
-                .receiptDate(request.getReceiptDate())
-                .supplierName(request.getSupplierName())
-                .status(request.getStatus())
-                .createdBy(request.getCreatedBy())
-                .details(new ArrayList<>())
-                .build();
+@Transactional
+public StockReceiptResponse createStockReceipt(StockReceiptRequest request) {
+    StockReceipt stockReceipt = StockReceipt.builder()
+            .idReceipt(generateNextId(stockReceiptRepository.findMaxIdReceipt(), "PN"))
+            .receiptDate(request.getReceiptDate())
+            .supplierName(request.getSupplierName())
+            .status(request.getStatus())
+            .createdBy(request.getCreatedBy())
+            .details(new ArrayList<>())
+            .build();
 
-        if (request.getDetails() != null) {
-            for (StockReceiptDetailRequest detailRequest : request.getDetails()) {
-                Ingredient ingredient = findIngredient(detailRequest.getIngredientId());
+    if (request.getDetails() != null) {
+        for (StockReceiptDetailRequest detailRequest : request.getDetails()) {
+            Ingredient ingredient = findIngredient(detailRequest.getIngredientId());
 
-                BigDecimal currentStock = getIngredientQuantityStock(ingredient);
-                BigDecimal importQty = detailRequest.getQuantityImport() == null
-                        ? BigDecimal.ZERO
-                        : detailRequest.getQuantityImport();
+            StockReceiptDetail detail = StockReceiptDetail.builder()
+                    .id(new StockReceiptDetailId(stockReceipt.getIdReceipt(), getIngredientId(ingredient)))
+                    .stockReceipt(stockReceipt)
+                    .ingredient(ingredient)
+                    .quantityImport(detailRequest.getQuantityImport())
+                    .importPrice(detailRequest.getImportPrice())
+                    .build();
 
-                setIngredientQuantityStock(ingredient, currentStock.add(importQty));
-                ingredientRepository.save(ingredient);
-
-                StockReceiptDetail detail = StockReceiptDetail.builder()
-                        .id(new StockReceiptDetailId(stockReceipt.getIdReceipt(), getIngredientId(ingredient)))
-                        .stockReceipt(stockReceipt)
-                        .ingredient(ingredient)
-                        .quantityImport(detailRequest.getQuantityImport())
-                        .importPrice(detailRequest.getImportPrice())
-                        .build();
-
-                stockReceipt.getDetails().add(detail);
-            }
+            stockReceipt.getDetails().add(detail);
         }
-
-        StockReceipt saved = stockReceiptRepository.save(stockReceipt);
-        return toReceiptResponse(saved);
     }
+
+    StockReceipt saved = stockReceiptRepository.save(stockReceipt);
+    return toReceiptResponse(saved);
+}
 
     @Override
     public List<StockReceiptResponse> getAllStockReceipts() {
@@ -93,58 +85,48 @@ public class InventoryImpl implements IInventoryService {
     }
 
     @Override
-    @Transactional
-    public StockReceiptResponse updateStockReceipt(String idReceipt, StockReceiptRequest request) {
-        StockReceipt stockReceipt = stockReceiptRepository.findById(idReceipt)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu nhập: " + idReceipt));
+@Transactional
+public StockReceiptResponse updateStockReceipt(String idReceipt, StockReceiptRequest request) {
+    StockReceipt stockReceipt = stockReceiptRepository.findById(idReceipt)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy phiếu nhập: " + idReceipt));
 
-        if (stockReceipt.getDetails() != null) {
-            for (StockReceiptDetail oldDetail : stockReceipt.getDetails()) {
-                Ingredient ingredient = oldDetail.getIngredient();
-                BigDecimal currentStock = getIngredientQuantityStock(ingredient);
-                BigDecimal oldQty = oldDetail.getQuantityImport() == null
-                        ? BigDecimal.ZERO
-                        : oldDetail.getQuantityImport();
+    String oldStatus = normalizeStatus(stockReceipt.getStatus());
+    String newStatus = normalizeStatus(request.getStatus());
 
-                setIngredientQuantityStock(ingredient, currentStock.subtract(oldQty));
-                ingredientRepository.save(ingredient);
-            }
-        }
-
-        stockReceipt.getDetails().clear();
-
-        stockReceipt.setReceiptDate(request.getReceiptDate());
-        stockReceipt.setSupplierName(request.getSupplierName());
-        stockReceipt.setStatus(request.getStatus());
-        stockReceipt.setCreatedBy(request.getCreatedBy());
-
-        if (request.getDetails() != null) {
-            for (StockReceiptDetailRequest detailRequest : request.getDetails()) {
-                Ingredient ingredient = findIngredient(detailRequest.getIngredientId());
-
-                BigDecimal currentStock = getIngredientQuantityStock(ingredient);
-                BigDecimal importQty = detailRequest.getQuantityImport() == null
-                        ? BigDecimal.ZERO
-                        : detailRequest.getQuantityImport();
-
-                setIngredientQuantityStock(ingredient, currentStock.add(importQty));
-                ingredientRepository.save(ingredient);
-
-                StockReceiptDetail detail = StockReceiptDetail.builder()
-                        .id(new StockReceiptDetailId(stockReceipt.getIdReceipt(), getIngredientId(ingredient)))
-                        .stockReceipt(stockReceipt)
-                        .ingredient(ingredient)
-                        .quantityImport(detailRequest.getQuantityImport())
-                        .importPrice(detailRequest.getImportPrice())
-                        .build();
-
-                stockReceipt.getDetails().add(detail);
-            }
-        }
-
-        StockReceipt saved = stockReceiptRepository.save(stockReceipt);
-        return toReceiptResponse(saved);
+    // Chỉ cho cập nhật khi phiếu còn ở trạng thái CHỜ
+    if (!"CHO".equals(oldStatus)) {
+        throw new RuntimeException("Phiếu này đã cập nhật trạng thái, không thể thay đổi nữa");
     }
+
+    if (request.getDetails() == null || request.getDetails().isEmpty()) {
+        throw new RuntimeException("Phiếu nhập phải có ít nhất 1 nguyên liệu");
+    }
+
+    stockReceipt.setReceiptDate(request.getReceiptDate());
+    stockReceipt.setSupplierName(request.getSupplierName());
+    stockReceipt.setStatus(request.getStatus());
+    stockReceipt.setCreatedBy(request.getCreatedBy());
+
+    // Chỉ cộng kho khi NHẬN HÀNG
+    if ("DA_NHAP".equals(newStatus)) {
+        for (StockReceiptDetailRequest detailRequest : request.getDetails()) {
+            Ingredient ingredient = findIngredient(detailRequest.getIngredientId());
+
+            BigDecimal currentStock = getIngredientQuantityStock(ingredient);
+            BigDecimal qty = detailRequest.getQuantityImport() == null
+                    ? BigDecimal.ZERO
+                    : detailRequest.getQuantityImport();
+
+            setIngredientQuantityStock(ingredient, currentStock.add(qty));
+            ingredientRepository.save(ingredient);
+        }
+    }
+
+    // Nếu HOÀN TRẢ thì không cộng kho, chỉ đổi trạng thái
+
+    StockReceipt saved = stockReceiptRepository.save(stockReceipt);
+    return toReceiptResponse(saved);
+}
 
     @Override
     @Transactional
@@ -379,4 +361,17 @@ public class InventoryImpl implements IInventoryService {
         if (value instanceof BigDecimal bigDecimal) return bigDecimal;
         return new BigDecimal(value.toString());
     }
+
+
+    private String normalizeStatus(String status) {
+    if (status == null) return "CHO";
+
+    String value = status.trim().toUpperCase();
+
+    if ("PENDING".equals(value) || "CHO".equals(value)) return "CHO";
+    if ("RECEIVED".equals(value) || "DA_NHAP".equals(value) || "NHAN_HANG".equals(value)) return "DA_NHAP";
+    if ("CANCELLED".equals(value) || "RETURNED".equals(value) || "HOAN_TRA".equals(value)) return "HOAN_TRA";
+
+    return value;
+}
 }

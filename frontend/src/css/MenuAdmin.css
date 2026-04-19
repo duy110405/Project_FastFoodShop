@@ -77,6 +77,13 @@
   font-size: 14px;
 }
 
+.food-cost-meta {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
+}
+
 .food-actions {
   display: flex;
   gap: 10px;

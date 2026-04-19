@@ -1,6 +1,8 @@
 package com.fastfood.service.impl;
 
 import com.fastfood.dto.request.FoodRequest;
+import com.fastfood.dto.response.FoodCostIngredientResponse;
+import com.fastfood.dto.response.FoodCostResponse;
 import com.fastfood.dto.response.FoodKitchenResponse;
 import com.fastfood.dto.response.FoodMenuResponse;
 import com.fastfood.entity.catalog.Food;
@@ -12,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 @Service
@@ -58,6 +62,13 @@ public class FoodImpl implements IFoodService {
         Food food = foodRepository.findById(idFood)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy món ăn mã: " + idFood));
         return foodMapper.toFoodKitchenResponse(food);
+    }
+
+    @Override
+    public List<FoodCostResponse> getFoodCosts() {
+        return foodRepository.findAllWithIngredients().stream()
+                .map(this::toFoodCostResponse)
+                .toList();
     }
 
     @Override
@@ -132,5 +143,54 @@ public class FoodImpl implements IFoodService {
             }
         }
         return true; // Tất cả nguyên liệu đều đủ -> Còn hàng
+    }
+
+    private FoodCostResponse toFoodCostResponse(Food food) {
+        List<FoodCostIngredientResponse> ingredientCosts = (food.getFoodIngredients() == null ? List.<FoodIngredient>of() : food.getFoodIngredients())
+                .stream()
+                .map(this::toIngredientCost)
+                .toList();
+
+        BigDecimal productionCost = ingredientCosts.stream()
+                .map(FoodCostIngredientResponse::getCostAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal salePrice = safeValue(food.getUnitPrice());
+        BigDecimal grossProfit = salePrice.subtract(productionCost);
+        BigDecimal marginPercent = BigDecimal.ZERO;
+        if (salePrice.compareTo(BigDecimal.ZERO) > 0) {
+            marginPercent = grossProfit
+                    .divide(salePrice, 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+        }
+
+        return FoodCostResponse.builder()
+                .idFood(food.getIdFood())
+                .foodName(food.getFoodName())
+                .salePrice(salePrice)
+                .productionCost(productionCost)
+                .grossProfit(grossProfit)
+                .marginPercent(marginPercent)
+                .ingredients(ingredientCosts)
+                .build();
+    }
+
+    private FoodCostIngredientResponse toIngredientCost(FoodIngredient item) {
+        BigDecimal quantityUsed = safeValue(item.getQuantityUsed());
+        BigDecimal importPrice = item.getIngredient() != null ? safeValue(item.getIngredient().getImportPrice()) : BigDecimal.ZERO;
+        BigDecimal costAmount = quantityUsed.multiply(importPrice);
+
+        return FoodCostIngredientResponse.builder()
+                .ingredientId(item.getIngredient() != null ? item.getIngredient().getIdIngredient() : null)
+                .ingredientName(item.getIngredient() != null ? item.getIngredient().getIngredientName() : null)
+                .unit(item.getIngredient() != null ? item.getIngredient().getUnit() : null)
+                .quantityUsed(quantityUsed)
+                .importPrice(importPrice)
+                .costAmount(costAmount)
+                .build();
+    }
+
+    private BigDecimal safeValue(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
     }
 }

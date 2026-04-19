@@ -5,7 +5,7 @@ import '../css/FoodMenu.css';
 import axios from 'axios';
 
 const { Title, Text } = Typography;
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'http://localhost:8081/api';
 
 const resolveTableNumberFromUser = () => {
   const fullName = localStorage.getItem('fullName') || '';
@@ -25,6 +25,12 @@ const resolveTableNumberFromUser = () => {
   }
 
   return 'Bàn A01';
+};
+
+const toTableCode = (value) => {
+  const source = (value || '').toUpperCase().replace('BÀN', '').replace('BAN', '').trim();
+  const match = source.match(/[A-Z]\d{2}/);
+  return match ? match[0] : 'A01';
 };
 
 const FoodMenu = () => {
@@ -82,7 +88,7 @@ const handlePlaceOrder = async () => {
     if (cart.length === 0) return message.warning("Giỏ hàng đang trống!");
 
     const orderPayload = {
-      tableNumber,
+      tableNumber: toTableCode(tableNumber),
       customerName: "Khách Lẻ",
       createdBy: "U_001", 
       items: cart.map(item => ({

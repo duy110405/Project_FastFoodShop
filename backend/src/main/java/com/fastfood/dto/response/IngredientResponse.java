@@ -1,5 +1,7 @@
 package com.fastfood.dto.response;
 
+import java.math.BigDecimal;
+
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
@@ -12,4 +14,5 @@ public class IngredientResponse {
     String ingredientName;
     String unit;
     int quantityStock;
+    BigDecimal importPrice;
 }

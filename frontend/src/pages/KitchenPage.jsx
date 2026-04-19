@@ -104,7 +104,7 @@ const KitchenPage = () => {
     );
   }, [searchText, remainingFoods]);
 
-  const headerTitle = activeTab === 'orders' ? 'Don hang' : 'Mon an';
+  const headerTitle = activeTab === 'orders' ? 'Đơn hàng' : 'Món ăn';
 
   return (
     <div className="kitchen-page">
@@ -115,13 +115,13 @@ const KitchenPage = () => {
           className={`kitchen-tab-btn ${activeTab === 'orders' ? 'active' : ''}`}
           onClick={() => setActiveTab('orders')}
         >
-          Don hang
+          Đơn hàng
         </Button>
         <Button
           className={`kitchen-tab-btn ${activeTab === 'foods' ? 'active' : ''}`}
           onClick={() => setActiveTab('foods')}
         >
-          Danh sach mon
+          Danh sách món
         </Button>
       </aside>
 
@@ -144,7 +144,7 @@ const KitchenPage = () => {
             </div>
           ) : activeTab === 'orders' ? (
             filteredTableOrders.length === 0 ? (
-              <Empty description="Khong co don hang dang cho" />
+              <Empty description="Không có đơn hàng đang chờ" />
             ) : (
               filteredTableOrders.map((table) => {
                 const expanded = expandedMap[table.tableNumber] !== false;
@@ -153,7 +153,7 @@ const KitchenPage = () => {
                   <div className="table-card" key={table.tableNumber}>
                     <div className="table-card-header">
                       <span>
-                        Ban: {table.tableNumber} - {formatElapsed(table.elapsedMinutes)}
+                        Bàn: {table.tableNumber} - {formatElapsed(table.elapsedMinutes)}
                       </span>
                       <button
                         type="button"
@@ -167,11 +167,11 @@ const KitchenPage = () => {
                       >
                         {expanded ? (
                           <>
-                            An bot <UpOutlined />
+                            Ẩn bớt <UpOutlined />
                           </>
                         ) : (
                           <>
-                            Hien them <DownOutlined />
+                            Hiện thêm <DownOutlined />
                           </>
                         )}
                       </button>
@@ -191,7 +191,7 @@ const KitchenPage = () => {
                             />
                             <div className="item-info">
                               <p className="item-title">{item.foodName}</p>
-                              <p className="item-qty">So luong: {item.quantity}</p>
+                              <p className="item-qty">Số lượng: {item.quantity}</p>
                             </div>
                             <Button
                               type="text"
@@ -209,7 +209,7 @@ const KitchenPage = () => {
               })
             )
           ) : filteredRemainingFoods.length === 0 ? (
-            <Empty description="Khong co mon con lai" />
+            <Empty description="Không có món còn lại" />
           ) : (
             <div className="food-list-card">
               {filteredRemainingFoods.map((food) => (
@@ -224,7 +224,7 @@ const KitchenPage = () => {
                   />
                   <div className="item-info">
                     <p className="item-title">{food.foodName}</p>
-                    <p className="item-qty">So luong con lai: {food.remainingQuantity}</p>
+                    <p className="item-qty">Số lượng còn lại: {food.remainingQuantity}</p>
                   </div>
                 </div>
               ))}

@@ -1,12 +1,17 @@
 package com.fastfood.controller;
 
+import com.fastfood.dto.ApiResponse;
 import com.fastfood.dto.request.OrderRequest;
 import com.fastfood.dto.request.PaymentRequest;
+import com.fastfood.dto.response.CashierOrderDetailResponse;
+import com.fastfood.dto.response.CashierPaymentResponse;
+import com.fastfood.dto.response.CashierTableStatusResponse;
 import com.fastfood.service.ISalesService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -21,6 +26,24 @@ public class SalesController {
     @GetMapping("/tables/status")
     public ResponseEntity<Set<String>> getTablesStatus() {
         return ResponseEntity.ok(salesService.getOccupiedTableNumbers());
+    }
+
+    @GetMapping("/tables")
+    public ApiResponse<List<CashierTableStatusResponse>> getTableStatusList() {
+        return ApiResponse.<List<CashierTableStatusResponse>>builder()
+                .code(200)
+                .message("Lấy trạng thái bàn thành công")
+                .data(salesService.getTableStatuses())
+                .build();
+    }
+
+    @GetMapping("/tables/{tableNumber}/order")
+    public ApiResponse<CashierOrderDetailResponse> getPendingOrderByTable(@PathVariable String tableNumber) {
+        return ApiResponse.<CashierOrderDetailResponse>builder()
+                .code(200)
+                .message("Lấy đơn hàng theo bàn thành công")
+                .data(salesService.getPendingOrderByTable(tableNumber))
+                .build();
     }
 
     // API đặt món từ màn hình khách hàng
@@ -38,7 +61,11 @@ public class SalesController {
 
     // API thanh toán từ màn hình thu ngân
     @PostMapping("/payments")
-    public ResponseEntity<?> checkout(@RequestBody PaymentRequest request) {
-        return ResponseEntity.ok(salesService.processPayment(request));
+    public ApiResponse<CashierPaymentResponse> checkout(@RequestBody PaymentRequest request) {
+        return ApiResponse.<CashierPaymentResponse>builder()
+                .code(200)
+                .message("Thanh toán thành công")
+                .data(salesService.processPayment(request))
+                .build();
     }
 }

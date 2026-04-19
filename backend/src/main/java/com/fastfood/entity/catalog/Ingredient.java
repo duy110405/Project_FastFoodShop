@@ -39,4 +39,7 @@ public class Ingredient {
 
     @Column(name = "quantity_stock", precision = 18, scale = 2)
     BigDecimal quantityStock;
+
+    @Column(name = "import_price", precision = 18, scale = 2)
+    BigDecimal importPrice;
 }

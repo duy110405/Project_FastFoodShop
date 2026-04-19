@@ -60,6 +60,14 @@ const Login = () => {
             localStorage.setItem('username', response.data.username || '');
             localStorage.setItem('fullName', response.data.fullName || '');
 
+            const source = `${response.data.fullName || ''} ${response.data.username || ''}`;
+            const tableMatch = source.match(/([A-Z]\d{2})/i);
+            if (tableMatch?.[1]) {
+                localStorage.setItem('tableNumber', `Bàn ${tableMatch[1].toUpperCase()}`);
+            } else {
+                localStorage.removeItem('tableNumber');
+            }
+
             navigate(getRoleHomePath(userRole), { replace: true });
         } catch (err) {
             // Nếu Spring Boot trả về lỗi 401 (Sai tài khoản/Mật khẩu)

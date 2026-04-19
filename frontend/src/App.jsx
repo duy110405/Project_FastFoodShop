@@ -87,6 +87,7 @@ const MainLayout = () => {
     localStorage.removeItem('userRole');
     localStorage.removeItem('username');
     localStorage.removeItem('fullName');
+    localStorage.removeItem('tableNumber');
     navigate('/login', { replace: true });
   };
 

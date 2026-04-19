@@ -7,7 +7,28 @@ import axios from 'axios';
 const { Title, Text } = Typography;
 const API_BASE_URL = 'http://localhost:8081/api';
 
+const resolveTableNumberFromUser = () => {
+  const fullName = localStorage.getItem('fullName') || '';
+  const username = localStorage.getItem('username') || '';
+  const source = `${fullName} ${username}`;
+
+  const tableMatch = source.match(/([A-Z]\d{2})/i);
+  if (tableMatch?.[1]) {
+    const normalized = `Bàn ${tableMatch[1].toUpperCase()}`;
+    localStorage.setItem('tableNumber', normalized);
+    return normalized;
+  }
+
+  const savedTable = localStorage.getItem('tableNumber');
+  if (savedTable) {
+    return savedTable;
+  }
+
+  return 'Bàn A01';
+};
+
 const FoodMenu = () => {
+  const [tableNumber] = useState(resolveTableNumberFromUser);
   const [menuItems, setMenuItems] = useState([]); // Chứa TẤT CẢ món ăn
   const [filteredItems, setFilteredItems] = useState([]); // Chứa món ăn ĐÃ LỌC theo Tab
   const [categories, setCategories] = useState([]); // Chứa danh sách Tab (Danh mục)
@@ -61,7 +82,7 @@ const handlePlaceOrder = async () => {
     if (cart.length === 0) return message.warning("Giỏ hàng đang trống!");
 
     const orderPayload = {
-      tableNumber: "Bàn A01",
+      tableNumber,
       customerName: "Khách Lẻ",
       createdBy: "U_001", 
       items: cart.map(item => ({
@@ -132,7 +153,7 @@ const handlePlaceOrder = async () => {
         </Badge>
         <Title level={3} style={{ margin: 0, color: 'white' }}>LOGO</Title>
         <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-          <Text strong style={{ fontSize: 16, color: 'white' }}>Bàn A01</Text>
+          <Text strong style={{ fontSize: 16, color: 'white' }}>{tableNumber}</Text>
           <Button type="text" icon={<ArrowLeftOutlined style={{ fontSize: 24, color: 'white' }} />} />
         </div>
       </div>

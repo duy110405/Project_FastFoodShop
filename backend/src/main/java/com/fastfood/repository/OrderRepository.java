@@ -4,6 +4,7 @@ import com.fastfood.entity.transaction.Order;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+
 import java.util.List;
 
 @Repository
@@ -18,4 +19,11 @@ public interface OrderRepository extends JpaRepository<Order, String> {
     // Tìm đơn hàng đang hoạt động của một bàn cụ thể
     @Query("SELECT o FROM Order o WHERE o.tableNumber = ?1 AND o.status = 'PENDING'")
     Order findActiveOrderByTable(String tableNumber);
+
+    @Query("SELECT DISTINCT o FROM Order o " +
+            "LEFT JOIN FETCH o.orderDetails od " +
+            "LEFT JOIN FETCH od.food " +
+            "WHERE o.status = 'PENDING' " +
+            "ORDER BY o.orderTime ASC")
+    List<Order> findPendingOrdersWithDetails();
 }

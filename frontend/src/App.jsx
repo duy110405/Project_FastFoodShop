@@ -1,77 +1,159 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import { Layout, Menu, Typography } from 'antd';
-import { ShopOutlined, DatabaseOutlined, FireOutlined, UserOutlined } from '@ant-design/icons';
+import { BrowserRouter, Routes, Route, Link, Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Button, Layout, Menu, Typography } from 'antd';
+import {
+  AppstoreOutlined,
+  CreditCardOutlined,
+  DashboardOutlined,
+  DatabaseOutlined,
+  FireOutlined,
+  LogoutOutlined,
+  OrderedListOutlined
+} from '@ant-design/icons';
+import FoodMenu from './pages/FoodMenu';
+import KitchenPage from './pages/KitchenPage';
+import PaymentPage from './pages/PaymentPage';
+import Login from './pages/Login';
 
-// LÔI COMPONENT FoodMenu VÀO ĐÂY
-import FoodMenu from './pages/FoodMenu'; 
-
-// Mấy component này là chỗ để 3 anh em kia code
-const KitchenPage = () => <div style={{ padding: 20 }}><h1>Màn hình Bếp (Chờ code...)</h1></div>;
+const DashboardPage = () => <div style={{ padding: 20 }}><h1>Màn hình Dashboard</h1></div>;
+const OrdersPage = () => <div style={{ padding: 20 }}><h1>Màn hình Đơn hàng</h1></div>;
 const InventoryPage = () => <div style={{ padding: 20 }}><h1>Màn hình Kho (Chờ code...)</h1></div>;
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title } = Typography;
 
+const normalizeRole = (role) => {
+  const normalized = (role || '').trim().toLowerCase();
+
+  if (normalized === 'admin') return 'ADMIN';
+  if (normalized === 'thu ngân' || normalized === 'thu ngan') return 'Thu ngân';
+  if (normalized === 'bếp' || normalized === 'bep') return 'Bếp';
+  if (normalized === 'khách hàng' || normalized === 'khach hang') return 'Khách hàng';
+
+  return role || '';
+};
+
+const getStoredRole = () => normalizeRole(localStorage.getItem('userRole'));
+
+const getRoleHomePath = (role) => {
+  const normalizedRole = normalizeRole(role);
+
+  if (normalizedRole === 'ADMIN') return '/dashboard';
+  if (normalizedRole === 'Thu ngân') return '/payment';
+  if (normalizedRole === 'Bếp') return '/kitchen';
+  if (normalizedRole === 'Khách hàng') return '/menu';
+
+  return '/login';
+};
+
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const role = getStoredRole();
+
+  if (!role) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.map(normalizeRole).includes(role)) {
+    return <Navigate to={getRoleHomePath(role)} replace />;
+  }
+
+  return children;
+};
+
+const HomeRedirect = () => {
+  return <Navigate to={getRoleHomePath(getStoredRole())} replace />;
+};
+
+const menuItems = [
+  { key: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: <DashboardOutlined />, roles: ['ADMIN'] },
+  { key: 'orders', path: '/orders', label: 'Đơn hàng', icon: <OrderedListOutlined />, roles: ['ADMIN'] },
+  { key: 'menu', path: '/menu', label: 'Menu', icon: <AppstoreOutlined />, roles: ['ADMIN', 'Khách hàng'] },
+  { key: 'inventory', path: '/inventory', label: 'Kho', icon: <DatabaseOutlined />, roles: ['ADMIN'] },
+  { key: 'kitchen', path: '/kitchen', label: 'Bếp', icon: <FireOutlined />, roles: ['Bếp'] },
+  { key: 'payment', path: '/payment', label: 'Thanh Toán', icon: <CreditCardOutlined />, roles: ['Thu ngân'] }
+];
+
+const MainLayout = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const role = getStoredRole();
+
+  const visibleMenuItems = menuItems.filter((item) => item.roles.map(normalizeRole).includes(role));
+  const selectedKey = menuItems.find((item) => item.path === location.pathname)?.key || '';
+
+  const handleLogout = () => {
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('username');
+    localStorage.removeItem('fullName');
+    navigate('/login', { replace: true });
+  };
+
+  return (
+    <Layout style={{ minHeight: '100vh' }}>
+      <Sider theme="dark" breakpoint="lg" collapsedWidth="0">
+        <div style={{ height: 32, margin: 16, background: 'rgba(255, 255, 255, 0.2)', borderRadius: 6, display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold' }}>
+          HỆ THỐNG POS
+        </div>
+
+        <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]}>
+          {visibleMenuItems.map((item) => (
+            <Menu.Item key={item.key} icon={item.icon}>
+              <Link to={item.path}>{item.label}</Link>
+            </Menu.Item>
+          ))}
+        </Menu>
+      </Sider>
+
+      <Layout>
+        <Header style={{ background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px' }}>
+          <Title level={4} style={{ margin: 0 }}>FastFood Team 4 Dashboard</Title>
+          <Button icon={<LogoutOutlined />} onClick={handleLogout}>Đăng xuất</Button>
+        </Header>
+
+        <Content style={{ margin: '24px 16px 0' }}>
+          <div style={{ minHeight: 360, background: '#fff', borderRadius: 8 }}>
+            <Outlet />
+          </div>
+        </Content>
+
+        <Footer style={{ textAlign: 'center' }}>
+          FastFood Team 4 ©{new Date().getFullYear()} - UI designed with Ant Design
+        </Footer>
+      </Layout>
+    </Layout>
+  );
+};
+
 function App() {
+  const role = getStoredRole();
+
   return (
     <BrowserRouter>
-      <Layout style={{ minHeight: '100vh' }}>
-        {/* CỘT MENU BÊN TRÁI (Dành cho Thu ngân / Quản lý) */}
-        <Sider theme="dark" breakpoint="lg" collapsedWidth="0">
-          <div style={{ height: 32, margin: 16, background: 'rgba(255, 255, 255, 0.2)', borderRadius: 6, display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold' }}>
-            HỆ THỐNG POS
-          </div>
-          <Menu theme="dark" mode="inline" defaultSelectedKeys={['1']}>
-            <Menu.Item key="1" icon={<ShopOutlined />}>
-              <Link to="/pos">Máy POS (Kiosk)</Link>
-            </Menu.Item>
-            <Menu.Item key="2" icon={<FireOutlined />}>
-              <Link to="/kitchen">Nhà Bếp</Link>
-            </Menu.Item>
-            <Menu.Item key="3" icon={<DatabaseOutlined />}>
-              <Link to="/inventory">Quản lý Kho</Link>
-            </Menu.Item>
-            <Menu.Item key="4" icon={<UserOutlined />}>
-              <Link to="/login">Đăng xuất</Link>
-            </Menu.Item>
-          </Menu>
-        </Sider>
+      <Routes>
+        <Route
+          path="/login"
+          element={role ? <Navigate to={getRoleHomePath(role)} replace /> : <Login />}
+        />
 
-        {/* KHUNG HIỂN THỊ NỘI DUNG CHÍNH (BÊN PHẢI) */}
-        <Layout>
-          {/* Cẩn thận chỗ này: Màn hình Kiosk của bạn ĐÃ CÓ Header riêng rồi. 
-              Nếu bạn muốn giữ lại Header tổng của hệ thống thì để lại đoạn dưới đây. 
-              Nếu muốn nó full màn hình (ẩn Header của App.jsx đi), bạn cứ xóa thẻ <Header> này đi nhé! */}
-          <Header style={{ padding: 0, background: '#fff', display: 'flex', alignItems: 'center', paddingLeft: 20 }}>
-            <Title level={4} style={{ margin: 0 }}>FastFood Team 4 Dashboard</Title>
-          </Header>
-          
-          <Content style={{ margin: '24px 16px 0' }}>
-            <div style={{ minHeight: 360, background: '#fff', borderRadius: 8 }}>
-              
-              {/* CHUYỂN HƯỚNG ROUTER TẠI ĐÂY */}
-              <Routes>
-                {/* Vừa vào Web là nhảy thẳng vào Kiosk */}
-                <Route path="/" element={<FoodMenu />} />
-                
-                {/* Bấm vào link /pos cũng vào Kiosk */}
-                <Route path="/pos" element={<FoodMenu />} />
-                
-                {/* Các trang chờ anh em code */}
-                <Route path="/kitchen" element={<KitchenPage />} />
-                <Route path="/inventory" element={<InventoryPage />} />
-                <Route path="/login" element={<div style={{ padding: 20 }}><h1>Trang Đăng Nhập</h1></div>} />
-              </Routes>
+        <Route
+          element={(
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          )}
+        >
+          <Route path="/" element={<HomeRedirect />} />
+          <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['ADMIN']}><DashboardPage /></ProtectedRoute>} />
+          <Route path="/orders" element={<ProtectedRoute allowedRoles={['ADMIN']}><OrdersPage /></ProtectedRoute>} />
+          <Route path="/menu" element={<ProtectedRoute allowedRoles={['ADMIN', 'Khách hàng']}><FoodMenu /></ProtectedRoute>} />
+          <Route path="/pos" element={<Navigate to="/menu" replace />} />
+          <Route path="/inventory" element={<ProtectedRoute allowedRoles={['ADMIN']}><InventoryPage /></ProtectedRoute>} />
+          <Route path="/kitchen" element={<ProtectedRoute allowedRoles={['Bếp']}><KitchenPage /></ProtectedRoute>} />
+          <Route path="/payment" element={<ProtectedRoute allowedRoles={['Thu ngân']}><PaymentPage /></ProtectedRoute>} />
+        </Route>
 
-            </div>
-          </Content>
-          
-          <Footer style={{ textAlign: 'center' }}>
-            FastFood Team 4 ©{new Date().getFullYear()} - UI designed with Ant Design
-          </Footer>
-        </Layout>
-      </Layout>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </BrowserRouter>
   );
 }

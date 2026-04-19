@@ -1,0 +1,180 @@
+.kitchen-page {
+  display: flex;
+  gap: 16px;
+  min-height: 72vh;
+}
+
+.kitchen-sidebar {
+  width: 220px;
+  background: #d2d2d2;
+  border-radius: 20px;
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kitchen-logo {
+  height: 72px;
+  border-radius: 12px;
+  background: #f1f1f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  margin-bottom: 16px;
+}
+
+.kitchen-tab-btn {
+  border: none;
+  background: #8d888a;
+  color: #fff;
+  text-align: left;
+  border-radius: 10px;
+  height: 50px;
+}
+
+.kitchen-tab-btn.active,
+.kitchen-tab-btn:hover {
+  background: #595557 !important;
+  color: #fff !important;
+}
+
+.kitchen-main {
+  flex: 1;
+  background: #d2d2d2;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.kitchen-topbar {
+  height: 78px;
+  background: #b2b0b1;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 24px;
+}
+
+.kitchen-topbar h3 {
+  margin: 0;
+  min-width: 130px;
+  font-size: 34px;
+  font-weight: 500;
+}
+
+.kitchen-search {
+  max-width: 480px;
+}
+
+.kitchen-content {
+  padding: 18px;
+  max-height: calc(72vh - 78px);
+  overflow-y: auto;
+}
+
+.kitchen-loading {
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-card {
+  background: #c8c8c8;
+  border-radius: 22px;
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+
+.table-card-header {
+  background: #b2b0b1;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 26px;
+  font-size: 34px;
+  font-weight: 300;
+}
+
+.toggle-btn {
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.table-card-body {
+  padding: 14px;
+}
+
+.kitchen-item {
+  background: #ededed;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+.item-image {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 2px;
+  background: #8f8f8f;
+}
+
+.item-info {
+  flex: 1;
+}
+
+.item-title {
+  margin: 0;
+  font-size: 32px;
+}
+
+.item-qty {
+  margin: 6px 0 0;
+  color: #6c6c6c;
+  font-size: 28px;
+  font-style: italic;
+}
+
+.done-btn {
+  font-size: 34px;
+  color: #333 !important;
+}
+
+.food-list-card {
+  background: #c8c8c8;
+  border-radius: 22px;
+  padding: 14px;
+}
+
+@media (max-width: 1400px) {
+  .kitchen-page {
+    flex-direction: column;
+  }
+
+  .kitchen-sidebar {
+    width: 100%;
+  }
+
+  .table-card-header,
+  .item-title,
+  .item-qty,
+  .kitchen-topbar h3 {
+    font-size: 20px;
+  }
+
+  .item-image {
+    width: 70px;
+    height: 70px;
+  }
+}
+

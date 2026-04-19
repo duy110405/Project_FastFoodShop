@@ -25,6 +25,8 @@ const getRoleHomePath = (role) => {
     return '/login';
 };
 
+const isRoleNavigable = (role) => getRoleHomePath(role) !== '/login';
+
 const Login = () => {
     // 1. Tạo các state để lưu dữ liệu người dùng gõ vào
     const [username, setUsername] = useState('');
@@ -36,7 +38,7 @@ const Login = () => {
 
     useEffect(() => {
         const savedRole = localStorage.getItem('userRole');
-        if (savedRole) {
+        if (savedRole && isRoleNavigable(savedRole)) {
             navigate(getRoleHomePath(savedRole), { replace: true });
         }
     }, [navigate]);
@@ -57,6 +59,14 @@ const Login = () => {
             localStorage.setItem('userRole', userRole);
             localStorage.setItem('username', response.data.username || '');
             localStorage.setItem('fullName', response.data.fullName || '');
+
+            const source = `${response.data.fullName || ''} ${response.data.username || ''}`;
+            const tableMatch = source.match(/([A-Z]\d{2})/i);
+            if (tableMatch?.[1]) {
+                localStorage.setItem('tableNumber', `Bàn ${tableMatch[1].toUpperCase()}`);
+            } else {
+                localStorage.removeItem('tableNumber');
+            }
 
             navigate(getRoleHomePath(userRole), { replace: true });
         } catch (err) {

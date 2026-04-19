@@ -26,7 +26,7 @@ const PaymentPage = () => {
   const fetchTables = async () => {
     try {
       setLoadingTables(true);
-      const res = await apiClient.get('/v1/sales/tables');
+      const res = await apiClient.get('/sales/tables');
       const nextTables = res.data?.data || [];
       setTables(nextTables);
 
@@ -47,7 +47,7 @@ const PaymentPage = () => {
   const fetchPendingOrder = async (tableNumber) => {
     try {
       setLoadingOrder(true);
-      const res = await apiClient.get(`/v1/sales/tables/${tableNumber}/order`);
+      const res = await apiClient.get(`/sales/tables/${tableNumber}/order`);
       setOrderDetail(res.data?.data || null);
     } catch (error) {
       console.error(error);
@@ -82,7 +82,7 @@ const PaymentPage = () => {
 
     try {
       setPaying(true);
-      const res = await apiClient.post('/v1/sales/payments', {
+      const res = await apiClient.post('/sales/payments', {
         orderId: orderDetail.orderId,
         customerPhone: customerPhone || null,
         paymentMethod

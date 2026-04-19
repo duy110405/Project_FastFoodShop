@@ -6,7 +6,7 @@ export const getAdminDashboard = async ({ fromDate, toDate, topN = 9 } = {}) => 
   if (fromDate) params.fromDate = fromDate;
   if (toDate) params.toDate = toDate;
 
-  const response = await apiClient.get('/v1/admin/dashboard', { params });
+  const response = await apiClient.get('/admin/dashboard', { params });
   return response.data?.data;
 };
 

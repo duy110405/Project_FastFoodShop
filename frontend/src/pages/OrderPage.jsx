@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Typography, Tabs, List, Button, message } from 'antd';
-import { CheckSquareOutlined } from '@ant-design/icons';
+import { Card, Row, Col, Typography, Tabs, List, Button, message, Space, Avatar } from 'antd';
+import { CheckSquareOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import SockJS from 'sockjs-client';
 import { Stomp } from '@stomp/stompjs';
 import apiClient from '../api/apiClient';
@@ -8,133 +8,147 @@ import apiClient from '../api/apiClient';
 const { Title, Text } = Typography;
 
 const OrderPage = () => {
-  const [pendingItems, setPendingItems] = useState([]);
+  const [pendingTables, setPendingTables] = useState([]);
   const [completedItems, setCompletedItems] = useState([]);
 
+  // 1. Lấy đơn hàng đang chờ (theo từng bàn)
   const fetchPendingOrders = async () => {
     try {
       const response = await apiClient.get('/kitchen/orders');
-      if (response.data && response.data.data) {
-        let flatPendingList = [];
-        response.data.data.forEach(table => {
-          const items = table.items || table.orderDetails || [];
-          items.forEach(item => {
-            flatPendingList.push({
-              ...item,
-              tableNumber: table.tableNumber || table.tableId
-            });
-          });
-        });
-        setPendingItems(flatPendingList);
+      const rawData = response.data.data || response.data;
+      if (rawData && Array.isArray(rawData)) {
+        setPendingTables(rawData);
       }
     } catch (error) {
-      console.error("Lỗi khi tải đơn hàng từ bếp:", error);
-      message.error("Không thể kết nối đến máy chủ lấy đơn hàng!");
+      console.error("Lỗi khi tải đơn hàng:", error);
+    }
+  };
+
+  // 2. Lấy đơn hàng đã xong (làm phẳng ra để hiện danh sách lịch sử)
+  const fetchCompletedOrders = async () => {
+    try {
+      const response = await apiClient.get('/kitchen/orders/completed');
+      const rawData = response.data.data || response.data;
+      if (Array.isArray(rawData)) {
+        let flatList = [];
+        rawData.forEach(t => {
+          const items = t.items || t.orderDetails || [];
+          items.forEach(i => flatList.push({ ...i, tableNumber: t.tableNumber }));
+        });
+        setCompletedItems(flatList);
+      }
+    } catch (error) {
+      console.error("Lỗi lịch sử:", error);
     }
   };
 
   useEffect(() => {
-    fetchPendingOrders(); 
-    
+    fetchPendingOrders();
+    fetchCompletedOrders();
+
     const socket = new SockJS('http://localhost:8080/ws');
     const stompClient = Stomp.over(socket);
-    stompClient.debug = () => {}; 
-
+    stompClient.debug = () => {};
     stompClient.connect({}, () => {
-      console.log('Đã kết nối đường truyền Real-time tới Bếp!');
-      stompClient.subscribe('/topic/kitchen', (socketMessage) => {
-        if (socketMessage.body === 'NEW_ORDER') {
-          message.success({ content: 'Có đơn hàng mới!', duration: 3, style: { marginTop: '10vh' }});
+      stompClient.subscribe('/topic/kitchen', (msg) => {
+        if (msg.body === 'NEW_ORDER') {
           fetchPendingOrders();
         }
       });
-    }, (error) => {
-      console.error("Lỗi WebSocket:", error);
     });
-
-    return () => {
-      if (stompClient && stompClient.connected) stompClient.disconnect();
-    };
+    return () => { if (stompClient.connected) stompClient.disconnect(); };
   }, []);
 
-  const handleMarkItemServed = async (itemToMark) => {
-    const itemId = itemToMark.id || itemToMark.orderDetailId;
+  const handleMarkItemServed = async (item) => {
+    const itemId = item.id || item.orderDetailId;
     try {
       await apiClient.post(`/kitchen/orders/items/${itemId}/served`);
       message.success("Đã hoàn thành món!");
-      setCompletedItems(prev => [itemToMark, ...prev]);
-      fetchPendingOrders(); 
+      fetchPendingOrders();
+      fetchCompletedOrders();
     } catch (error) {
-      console.error("Lỗi cập nhật món:", error);
-      message.error("Không thể cập nhật trạng thái món ăn.");
+      message.error("Lỗi cập nhật món ăn.");
     }
   };
 
-  const tabItems = [{ key: 'order', label: 'Order' }, { key: 'history', label: 'Lịch sử' }];
-
   return (
-    <div style={{ padding: '24px', background: '#fff', borderRadius: '8px' }}>
-      <Tabs defaultActiveKey="order" items={tabItems} style={{ marginBottom: 16 }} />
-
+    <div style={{ padding: '24px', background: '#f5f5f5', minHeight: '100vh' }}>
+      {/* Khối thống kê */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={12}>
-          <Card style={{ background: '#e0e0e0', textAlign: 'center', borderRadius: '12px' }}>
-            <Title level={2} style={{ margin: 0 }}>{pendingItems.length}</Title>
-            <Text strong style={{ color: '#d9363e' }}>Món đang chờ</Text>
+          <Card style={{ textAlign: 'center', borderRadius: 12 }}>
+            <Title level={2} style={{ margin: 0, color: '#d9363e' }}>{pendingTables.length}</Title>
+            <Text strong>Bàn đang chờ</Text>
           </Card>
         </Col>
         <Col span={12}>
-          <Card style={{ background: '#e0e0e0', textAlign: 'center', borderRadius: '12px' }}>
-            <Title level={2} style={{ margin: 0 }}>{completedItems.length}</Title>
-            <Text>Món đã xong (phiên này)</Text>
+          <Card style={{ textAlign: 'center', borderRadius: 12 }}>
+            <Title level={2} style={{ margin: 0, color: '#52c41a' }}>{completedItems.length}</Title>
+            <Text strong>Món đã phục vụ</Text>
           </Card>
         </Col>
       </Row>
 
-      <div style={{ height: 'calc(100vh - 350px)', overflowY: 'auto', paddingRight: '10px' }}>
-        
-        {/* DANH SÁCH CHƯA XONG (ĐỎ) */}
-        <Title level={5} style={{ color: '#d9363e', borderBottom: '2px solid #d9363e', paddingBottom: '8px' }}>
-          CHƯA XONG ({pendingItems.length})
-        </Title>
-        <List
-          dataSource={pendingItems}
-          renderItem={item => (
-            <List.Item style={{ background: '#ffcccc', marginBottom: '12px', padding: '16px', borderRadius: '8px', borderLeft: '6px solid #ff4d4f' }}>
-              <List.Item.Meta
-                title={<Text strong style={{ fontSize: '16px' }}>{item.foodName || item.name}</Text>}
-                description={<Text strong type="danger">Bàn: {item.tableNumber} | Số lượng: {item.quantity}</Text>}
-              />
-              <Button 
-                type="primary" 
-                danger 
-                icon={<CheckSquareOutlined />} 
-                onClick={() => handleMarkItemServed(item)}
-              >
-                Hoàn thành
-              </Button>
-            </List.Item>
-          )}
-        />
-
-        {/* DANH SÁCH ĐÃ XONG (XANH) */}
-        <Title level={5} style={{ color: '#52c41a', borderBottom: '2px solid #52c41a', paddingBottom: '8px', marginTop: '30px' }}>
-          ĐÃ XONG ({completedItems.length})
-        </Title>
-        <List
-          dataSource={completedItems}
-          renderItem={item => (
-            <List.Item style={{ background: '#d9f7be', marginBottom: '12px', padding: '16px', borderRadius: '8px', borderLeft: '6px solid #52c41a' }}>
-              <List.Item.Meta
-                title={<Text strong style={{ fontSize: '16px', textDecoration: 'line-through' }}>{item.foodName || item.name}</Text>}
-                description={<Text type="secondary">Bàn: {item.tableNumber} | Số lượng: {item.quantity}</Text>}
-              />
-              <Text strong style={{ color: '#52c41a' }}>Đã phục vụ</Text>
-            </List.Item>
-          )}
-        />
-
-      </div>
+      <Tabs defaultActiveKey="1" items={[
+        {
+          key: '1',
+          label: 'Đang chế biến',
+          children: (
+            <Space direction="vertical" size="large" style={{ width: '100%' }}>
+              {pendingTables.map((table) => (
+                <div key={table.tableNumber} style={{ background: '#e0e0e0', borderRadius: '12px', padding: '12px' }}>
+                  {/* Thanh tiêu đề bàn giống Figma */}
+                  <div style={{ background: '#bcbcbc', padding: '10px 20px', borderRadius: '8px 8px 0 0', display: 'flex', justifyContent: 'space-between' }}>
+                    <Text strong style={{ fontSize: '18px', color: '#fff' }}>Bàn: {table.tableNumber}</Text>
+                    <Text style={{ color: '#fff' }}><ClockCircleOutlined /> {table.elapsedMinutes || 0}m</Text>
+                  </div>
+                  {/* Danh sách món trong bàn */}
+                  <div style={{ background: '#fff', borderRadius: '0 0 8px 8px' }}>
+                    <List
+                      dataSource={table.items || table.orderDetails || []}
+                      renderItem={(item) => (
+                        <List.Item
+                          style={{ padding: '15px 20px' }}
+                          actions={[
+                            <Button type="primary" danger icon={<CheckSquareOutlined />} onClick={() => handleMarkItemServed(item)}>
+                              Xong
+                            </Button>
+                          ]}
+                        >
+                          <List.Item.Meta
+                            avatar={<Avatar shape="square" size={64} src={item.imageUrlFood} />}
+                            title={<Text strong style={{ fontSize: '16px' }}>{item.foodName}</Text>}
+                            description={<Text type="danger">Số lượng: {item.quantity}</Text>}
+                          />
+                        </List.Item>
+                      )}
+                    />
+                  </div>
+                </div>
+              ))}
+              {pendingTables.length === 0 && <Text type="secondary">Hiện tại không có đơn hàng nào.</Text>}
+            </Space>
+          )
+        },
+        {
+          key: '2',
+          label: 'Lịch sử phục vụ',
+          children: (
+            <List
+              dataSource={completedItems}
+              renderItem={(item) => (
+                <List.Item style={{ background: '#fff', marginBottom: '8px', padding: '12px 20px', borderRadius: '8px' }}>
+                  <List.Item.Meta
+                    title={<Text strong>{item.foodName}</Text>}
+                    description={`Bàn: ${item.tableNumber} | Số lượng: ${item.quantity}`}
+                  />
+                  <Text strong style={{ color: '#52c41a' }}>Đã phục vụ ✓</Text>
+                </List.Item>
+              )}
+            />
+          )
+        }
+      ]} />
     </div>
   );
 };

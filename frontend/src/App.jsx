@@ -19,17 +19,15 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import InventoryPage from './pages/InventoryPage';
 import MenuAdmin from './pages/MenuAdmin';
-import OrderPage from './pages/OrderPage'; // <-- ĐÃ THÊM IMPORT NÀY
+import OrderPage from './pages/OrderPage'; 
 import './App.css';
-
-// Import trang MenuAdmin 
-import MenuAdmin from './pages/MenuAdmin'; 
-
-// ĐÃ XÓA COMPONENT OrdersPage GIẢ Ở ĐÂY
-const OrdersPage = () => <div style={{ padding: 20 }}><h1>Màn hình Đơn hàng</h1></div>;
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title } = Typography;
+
+// ========================================================
+//  CÁC THÀNH PHẦN HỖ TRỢ (HELPER)
+// ========================================================
 
 const normalizeRole = (role) => {
   const normalized = (role || '').trim().toLowerCase();
@@ -67,19 +65,14 @@ const HomeRedirect = () => {
 };
 
 // ========================================================
-//  TÁCH RIÊNG MENU CỦA ADMIN VÀ KHÁCH
+//  CẤU HÌNH MENU SIDEBAR
 // ========================================================
 const menuItems = [
-  // 1. Nhóm nút chỉ hiện cho ADMIN
   { key: 'dashboard', path: '/admin/dashboard', label: 'Dashboard', icon: <DashboardOutlined />, roles: ['ADMIN'] },
   { key: 'orders', path: '/admin/orders', label: 'Đơn hàng', icon: <OrderedListOutlined />, roles: ['ADMIN'] },
-  { key: 'admin-menu', path: '/admin/menu', label: 'Quản lý Menu', icon: <AppstoreOutlined />, roles: ['ADMIN'] }, // Sẽ mở MenuAdmin
+  { key: 'admin-menu', path: '/admin/menu', label: 'Quản lý Menu', icon: <AppstoreOutlined />, roles: ['ADMIN'] },
   { key: 'inventory', path: '/admin/inventory', label: 'Kho', icon: <DatabaseOutlined />, roles: ['ADMIN'] },
-  
-  // 2. Nhóm nút cho KHÁCH & THU NGÂN
-  { key: 'customer-menu', path: '/menu', label: 'Menu Đặt Món', icon: <AppstoreOutlined />, roles: ['Khách hàng', 'Thu ngân'] }, // Sẽ mở FoodMenu màu cam
-  
-  // 3. Nhóm nút cho BẾP
+  { key: 'customer-menu', path: '/menu', label: 'Menu Đặt Món', icon: <AppstoreOutlined />, roles: ['Khách hàng', 'Thu ngân'] },
   { key: 'kitchen', path: '/kitchen', label: 'Bếp', icon: <FireOutlined />, roles: ['Bếp'] },
   { key: 'payment', path: '/payment', label: 'Thanh Toán', icon: <CreditCardOutlined />, roles: ['Thu ngân'] }
 ];
@@ -106,7 +99,6 @@ const MainLayout = () => {
         <div style={{ height: 32, margin: 16, background: 'rgba(255, 255, 255, 0.2)', borderRadius: 6, display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold' }}>
           HỆ THỐNG POS
         </div>
-
         <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]}>
           {visibleMenuItems.map((item) => (
             <Menu.Item key={item.key} icon={item.icon}>
@@ -115,13 +107,11 @@ const MainLayout = () => {
           ))}
         </Menu>
       </Sider>
-
       <Layout>
         <Header style={{ background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px' }}>
           <Title level={4} style={{ margin: 0 }}>FastFood Dashboard</Title>
           <Button icon={<LogoutOutlined />} onClick={handleLogout}>Đăng xuất</Button>
         </Header>
-
         <Content style={{ margin: '24px 16px 0' }}>
           <div style={{ minHeight: 360, background: '#fff', borderRadius: 8 }}>
             <Outlet />
@@ -132,6 +122,9 @@ const MainLayout = () => {
   );
 };
 
+// ========================================================
+//  COMPONENT CHÍNH
+// ========================================================
 function App() {
   const role = getStoredRole();
   const roleHomePath = getRoleHomePath(role);
@@ -144,55 +137,28 @@ function App() {
         <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           <Route path="/" element={<HomeRedirect />} />
           
-          {/* ========================================================
-              CẤP ROUTE CHUẨN CHO ADMIN
-              ======================================================== */}
+          {/* CẤU TRÚC ROUTE ADMIN ĐÃ ĐƯỢC LÀM GỌN VÀ FIX LỖI TRÙNG LẶP */}
           <Route path="/admin">
-            <Route
-              path="dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['ADMIN']}>
-                  <DashboardPage />
-                </ProtectedRoute>
-              }
+            <Route 
+                path="dashboard" 
+                element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} 
             />
-            {/* ĐÃ SỬA LẠI ĐƯỜNG DẪN NÀY ĐỂ TRỎ ĐẾN OrderPage THẬT */}
-            <Route
-              path="orders"
-              element={
-                <ProtectedRoute allowedRoles={['ADMIN']}>
-                  <OrderPage /> 
-                </ProtectedRoute>
-              }
+            <Route 
+                path="orders" 
+                element={<ProtectedRoute allowedRoles={['ADMIN']}><OrderPage /></ProtectedRoute>} 
             />
-            <Route
-              path="menu"
-              element={
-                <ProtectedRoute allowedRoles={['ADMIN']}>
-                  <MenuAdmin />
-                </ProtectedRoute>
-              }
+            <Route 
+                path="menu" 
+                element={<ProtectedRoute allowedRoles={['ADMIN']}><MenuAdmin /></ProtectedRoute>} 
             />
-            <Route
-              path="inventory"
-              element={
-                <ProtectedRoute allowedRoles={['ADMIN']}>
-                  <InventoryPage />
-                </ProtectedRoute>
-              }
+            <Route 
+                path="inventory" 
+                element={<ProtectedRoute allowedRoles={['ADMIN']}><InventoryPage /></ProtectedRoute>} 
             />
-            <Route path="dashboard" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
-            <Route path="orders" element={<ProtectedRoute allowedRoles={['ADMIN']}><OrdersPage /></ProtectedRoute>} />
-            
-            {/* Nhét MenuAdmin vào đường dẫn /admin/menu */}
-            <Route path="menu" element={<ProtectedRoute allowedRoles={['ADMIN']}><MenuAdmin /></ProtectedRoute>} />
-            
-            <Route path="inventory" element={<ProtectedRoute allowedRoles={['ADMIN']}><InventoryPage /></ProtectedRoute>} />
           </Route>
 
           {/* Các trang của Role khác */}
           <Route path="/menu" element={<ProtectedRoute allowedRoles={['Khách hàng', 'Thu ngân']}><FoodMenu /></ProtectedRoute>} />
-          <Route path="/pos" element={<Navigate to="/menu" replace />} />
           <Route path="/kitchen" element={<ProtectedRoute allowedRoles={['Bếp']}><KitchenPage /></ProtectedRoute>} />
           <Route path="/payment" element={<ProtectedRoute allowedRoles={['Thu ngân']}><PaymentPage /></ProtectedRoute>} />
         </Route>

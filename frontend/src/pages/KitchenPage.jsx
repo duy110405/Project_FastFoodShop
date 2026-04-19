@@ -26,8 +26,8 @@ const KitchenPage = () => {
     try {
       setLoading(true);
       const [ordersRes, foodsRes] = await Promise.all([
-        apiClient.get('/v1/kitchen/orders'),
-        apiClient.get('/v1/kitchen/foods/remaining')
+        apiClient.get('/kitchen/orders'),
+        apiClient.get('/kitchen/foods/remaining')
       ]);
 
       const orders = ordersRes?.data?.data ?? [];
@@ -59,7 +59,7 @@ const KitchenPage = () => {
   const onServeItem = async (orderDetailId) => {
     try {
       setServingIds((prev) => [...prev, orderDetailId]);
-      await apiClient.post(`/v1/kitchen/orders/items/${orderDetailId}/served`);
+      await apiClient.post(`/kitchen/orders/items/${orderDetailId}/served`);
       message.success('Da cap nhat mon da hoan thanh');
       await fetchKitchenData();
     } catch (error) {

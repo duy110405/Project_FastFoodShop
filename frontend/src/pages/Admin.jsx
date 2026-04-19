@@ -10,7 +10,7 @@ import {
 } from '@ant-design/icons';
 
 
-import MenuAdmin from '../MenuAdmin';
+import MenuAdmin from './MenuAdmin';
 
 const { Header, Content, Sider, Footer } = Layout;
 const { Title } = Typography;
@@ -76,7 +76,7 @@ const Admin = () => {
           {/* CÁI KHUNG TRẮNG NÀY LÀ NƠI CHỨA TRANG CON */}
           <div style={{ padding: 24, minHeight: 360, background: '#fff', borderRadius: 8 }}>
             
-            {/* 🎯 ĐẶT TRỰC TIẾP ROUTER Ở ĐÂY LUÔN */}
+            {/*  ĐẶT TRỰC TIẾP ROUTER Ở ĐÂY LUÔN */}
             <Routes>
               {/* Gõ /admin -> Tự nhảy sang /admin/dashboard */}
               <Route path="/" element={<Navigate to="dashboard" replace />} />
@@ -84,16 +84,12 @@ const Admin = () => {
               {/* Các trang con bên trong Khung */}
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="orders" element={<OrdersPage />} />
-              <Route path="menu" element={<FoodMenu />} />
+              <Route path="menu" element={<MenuAdmin />} />
               <Route path="inventory" element={<InventoryPage />} />
             </Routes>
 
           </div>
         </Content>
-
-        <Footer style={{ textAlign: 'center' }}>
-          FastFood Team 4 Admin ©{new Date().getFullYear()} - UI designed with Ant Design
-        </Footer>
       </Layout>
 
     </Layout>

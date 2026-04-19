@@ -46,6 +46,8 @@ const getRoleHomePath = (role) => {
   return '/login';
 };
 
+const isRoleNavigable = (role) => getRoleHomePath(role) !== '/login';
+
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const role = getStoredRole();
 
@@ -126,13 +128,14 @@ const MainLayout = () => {
 
 function App() {
   const role = getStoredRole();
+  const roleHomePath = getRoleHomePath(role);
 
   return (
     <BrowserRouter>
       <Routes>
         <Route
           path="/login"
-          element={role ? <Navigate to={getRoleHomePath(role)} replace /> : <Login />}
+          element={role && isRoleNavigable(role) ? <Navigate to={roleHomePath} replace /> : <Login />}
         />
 
         <Route

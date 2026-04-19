@@ -25,6 +25,8 @@ const getRoleHomePath = (role) => {
     return '/login';
 };
 
+const isRoleNavigable = (role) => getRoleHomePath(role) !== '/login';
+
 const Login = () => {
     // 1. Tạo các state để lưu dữ liệu người dùng gõ vào
     const [username, setUsername] = useState('');
@@ -36,7 +38,7 @@ const Login = () => {
 
     useEffect(() => {
         const savedRole = localStorage.getItem('userRole');
-        if (savedRole) {
+        if (savedRole && isRoleNavigable(savedRole)) {
             navigate(getRoleHomePath(savedRole), { replace: true });
         }
     }, [navigate]);

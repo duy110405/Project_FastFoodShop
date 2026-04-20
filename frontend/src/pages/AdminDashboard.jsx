@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Button,
   Card,
@@ -25,6 +25,7 @@ import '../css/AdminDashboard.css';
 
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
+const POLL_INTERVAL_MS = 5000;
 
 const formatCurrency = (value) => {
   const number = Number(value || 0);
@@ -54,27 +55,42 @@ const AdminDashboard = () => {
     topOrderedFoods: []
   });
 
-  const fetchDashboard = async (nextRange) => {
+  const fetchDashboard = useCallback(async (nextRange, { silent = false, resetPage = true } = {}) => {
     const fromDate = nextRange?.[0]?.format('YYYY-MM-DD');
     const toDate = nextRange?.[1]?.format('YYYY-MM-DD');
 
-    setLoading(true);
+    if (!silent) {
+      setLoading(true);
+    }
     try {
       const data = await getAdminDashboard({ fromDate, toDate, topN: 9 });
       setDashboard(data || {});
-      setFoodPage(0);
+      if (resetPage) {
+        setFoodPage(0);
+      }
     } catch (error) {
       console.error(error);
-      message.error(error.response?.data?.message || 'Không thể tải dữ liệu dashboard');
+      if (!silent) {
+        message.error(error.response?.data?.message || 'Không thể tải dữ liệu dashboard');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
   React.useEffect(() => {
     fetchDashboard(range);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchDashboard(range, { silent: true, resetPage: false });
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, [fetchDashboard, range]);
 
   const foodPages = useMemo(() => getTopFoodCards(dashboard.topOrderedFoods || []), [dashboard.topOrderedFoods]);
   const currentFoods = foodPages[foodPage] || [];
@@ -94,7 +110,7 @@ const AdminDashboard = () => {
             allowClear={false}
             format="DD/MM/YYYY"
           />
-          <Button type="primary" onClick={() => fetchDashboard(range)}>Truy van</Button>
+          <Button type="primary" onClick={() => fetchDashboard(range, { resetPage: true })}>Truy van</Button>
         </Space>
       </div>
 

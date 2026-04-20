@@ -20,6 +20,9 @@ public class KitchenController {
 
     private final IKitchenService kitchenService;
 
+    /**
+     * Lấy danh sách các đơn hàng đang chờ chế biến (PENDING) theo từng bàn
+     */
     @GetMapping("/orders")
     public ApiResponse<List<KitchenTableOrderResponse>> getPendingOrdersByTable() {
         return ApiResponse.<List<KitchenTableOrderResponse>>builder()
@@ -29,6 +32,22 @@ public class KitchenController {
                 .build();
     }
 
+    /**
+     * Lấy danh sách các món đã hoàn thành (SERVED/COMPLETED)
+     * Đây là Endpoint bạn vừa thiếu khiến Frontend báo lỗi 500/404
+     */
+    @GetMapping("/orders/completed")
+    public ApiResponse<List<KitchenTableOrderResponse>> getCompletedOrders() {
+        return ApiResponse.<List<KitchenTableOrderResponse>>builder()
+                .code(200)
+                .message("Lấy danh sách món đã hoàn thành thành công")
+                .data(kitchenService.getCompletedOrders())
+                .build();
+    }
+
+    /**
+     * Lấy tổng hợp các món ăn còn nợ (tổng số lượng từng món trên tất cả các bàn)
+     */
     @GetMapping("/foods/remaining")
     public ApiResponse<List<KitchenFoodPendingResponse>> getRemainingFoodSummary() {
         return ApiResponse.<List<KitchenFoodPendingResponse>>builder()
@@ -38,6 +57,9 @@ public class KitchenController {
                 .build();
     }
 
+    /**
+     * Cập nhật trạng thái một món ăn sang "Đã phục vụ"
+     */
     @PostMapping("/orders/items/{orderDetailId}/served")
     public ApiResponse<Void> markOrderItemServed(@PathVariable Long orderDetailId) {
         kitchenService.markOrderItemServed(orderDetailId);
@@ -47,5 +69,3 @@ public class KitchenController {
                 .build();
     }
 }
-
-

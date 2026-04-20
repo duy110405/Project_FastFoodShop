@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Input, Button, Empty, Spin, message } from 'antd';
 import { SearchOutlined, DownOutlined, UpOutlined, MinusSquareOutlined } from '@ant-design/icons';
 import apiClient from '../api/apiClient';
 import '../css/KitchenPage.css';
 
 const DEFAULT_FOOD_IMAGE = 'https://via.placeholder.com/120x120?text=FOOD';
+const POLL_INTERVAL_MS = 3000;
 
 const formatElapsed = (minutes) => {
   const safeMinutes = Number.isFinite(minutes) ? Math.max(minutes, 0) : 0;
@@ -21,13 +22,22 @@ const KitchenPage = () => {
   const [expandedMap, setExpandedMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [servingIds, setServingIds] = useState([]);
+  const isFetchingRef = useRef(false);
 
-  const fetchKitchenData = async () => {
+  const fetchKitchenData = useCallback(async ({ silent = false } = {}) => {
+    if (isFetchingRef.current) {
+      return;
+    }
+
     try {
-      setLoading(true);
+      isFetchingRef.current = true;
+      if (!silent) {
+        setLoading(true);
+      }
+
       const [ordersRes, foodsRes] = await Promise.all([
-        apiClient.get('/v1/kitchen/orders'),
-        apiClient.get('/v1/kitchen/foods/remaining')
+        apiClient.get('/kitchen/orders'),
+        apiClient.get('/kitchen/foods/remaining')
       ]);
 
       const orders = ordersRes?.data?.data ?? [];
@@ -48,20 +58,31 @@ const KitchenPage = () => {
       console.error(error);
       message.error('Khong tai duoc du lieu nha bep');
     } finally {
-      setLoading(false);
+      isFetchingRef.current = false;
+      if (!silent) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchKitchenData();
-  }, []);
+
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchKitchenData({ silent: true });
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, [fetchKitchenData]);
 
   const onServeItem = async (orderDetailId) => {
     try {
       setServingIds((prev) => [...prev, orderDetailId]);
-      await apiClient.post(`/v1/kitchen/orders/items/${orderDetailId}/served`);
+      await apiClient.post(`/kitchen/orders/items/${orderDetailId}/served`);
       message.success('Da cap nhat mon da hoan thanh');
-      await fetchKitchenData();
+      await fetchKitchenData({ silent: true });
     } catch (error) {
       console.error(error);
       const errorMessage = error?.response?.data?.message || 'Cap nhat mon that bai';

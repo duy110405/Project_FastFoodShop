@@ -5,6 +5,7 @@ import '../css/InventoryPage.css';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 const DEFAULT_RECEIPT_STATUS = 'CHO';
+const POLL_INTERVAL_MS = 7000;
 
 const IngredientImage = ({ src, alt }) => {
   const finalSrc = src || '/images/default-food.png';
@@ -568,35 +569,49 @@ export default function InventoryPage() {
   const [toDate, setToDate] = useState('');
   const [ingredientId, setIngredientId] = useState('');
 
-  const fetchInventoryReport = async () => {
+  const fetchInventoryReport = async ({ silent = false } = {}) => {
     try {
-      setLoadingInventory(true);
+      if (!silent) {
+        setLoadingInventory(true);
+      }
       const res = await axios.get(`${API_BASE_URL}/inventory/report`);
       setInventoryItems(res.data.data || []);
     } catch (err) {
       console.error(err);
-      message.error('Lỗi lấy dữ liệu tồn kho!');
+      if (!silent) {
+        message.error('Lỗi lấy dữ liệu tồn kho!');
+      }
     } finally {
-      setLoadingInventory(false);
+      if (!silent) {
+        setLoadingInventory(false);
+      }
     }
   };
 
-  const fetchReceipts = async () => {
+  const fetchReceipts = async ({ silent = false } = {}) => {
     try {
-      setLoadingReceipts(true);
+      if (!silent) {
+        setLoadingReceipts(true);
+      }
       const res = await axios.get(`${API_BASE_URL}/inventory/receipts`);
       setReceipts(res.data.data || []);
     } catch (err) {
       console.error(err);
-      message.error('Lỗi lấy phiếu nhập!');
+      if (!silent) {
+        message.error('Lỗi lấy phiếu nhập!');
+      }
     } finally {
-      setLoadingReceipts(false);
+      if (!silent) {
+        setLoadingReceipts(false);
+      }
     }
   };
 
-  const fetchConsumptionHistory = async (fromDateParam, toDateParam) => {
+  const fetchConsumptionHistory = async (fromDateParam, toDateParam, { silent = false } = {}) => {
     try {
-      setLoadingConsumption(true);
+      if (!silent) {
+        setLoadingConsumption(true);
+      }
       const params = {};
       if (fromDateParam) params.fromDate = fromDateParam;
       if (toDateParam) params.toDate = toDateParam;
@@ -605,9 +620,13 @@ export default function InventoryPage() {
       setConsumptionHistory(res.data.data || []);
     } catch (err) {
       console.error(err);
-      message.error('Lỗi lấy lịch sử tiêu thụ nguyên liệu!');
+      if (!silent) {
+        message.error('Lỗi lấy lịch sử tiêu thụ nguyên liệu!');
+      }
     } finally {
-      setLoadingConsumption(false);
+      if (!silent) {
+        setLoadingConsumption(false);
+      }
     }
   };
 
@@ -643,7 +662,21 @@ export default function InventoryPage() {
     fetchInventoryReport();
     fetchReceipts();
     fetchConsumptionHistory();
-  }, []);
+
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchInventoryReport({ silent: true });
+        if (importMode === 'history') {
+          fetchReceipts({ silent: true });
+        }
+        if (mainTab === 'consume') {
+          fetchConsumptionHistory(fromDate || undefined, toDate || undefined, { silent: true });
+        }
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, [importMode, mainTab, fromDate, toDate]);
 
 const handleCreated = async () => {
   setImportMode('history');

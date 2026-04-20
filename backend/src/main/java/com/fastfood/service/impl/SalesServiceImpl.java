@@ -20,6 +20,7 @@ import com.fastfood.repository.SalesInvoiceRepository;
 import com.fastfood.repository.UserRepository;
 import com.fastfood.service.ISalesService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,11 +42,15 @@ public class SalesServiceImpl implements ISalesService {
 
     private static final Pattern TABLE_CODE_PATTERN = Pattern.compile("[A-Z]\\d{2}");
 
+    // CÁC THƯ VIỆN ĐƯỢC INJECT BẰNG "private final"
     private final OrderRepository orderRepository;
     private final FoodRepository foodRepository;
     private final SalesInvoiceRepository salesInvoiceRepository;
     private final IngredientRepository ingredientRepository;
+    
+    // ĐÃ THÊM 2 DÒNG NÀY ĐỂ FIX LỖI "CANNOT BE RESOLVED"
     private final UserRepository userRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     public String generateNextOrderId() {
@@ -158,24 +163,16 @@ public class SalesServiceImpl implements ISalesService {
             for (FoodIngredient recipe : food.getFoodIngredients()) {
                 Ingredient ingredient = recipe.getIngredient();
 
-                //Chống Null cho định lượng
                 BigDecimal qtyUsed = recipe.getQuantityUsed() != null ? recipe.getQuantityUsed() : BigDecimal.ZERO;
-
-                // Tổng trừ = Định lượng * Số lượng món
                 BigDecimal totalDeducted = qtyUsed.multiply(BigDecimal.valueOf(item.getQuantity()));
-
-                //Chống Null cho tồn kho
                 BigDecimal currentStock = ingredient.getQuantityStock() != null ? ingredient.getQuantityStock() : BigDecimal.ZERO;
 
-                //  CHẶN ĐỨNG LỖI ÂM KHO
                 if (currentStock.compareTo(totalDeducted) < 0) {
-                    // Trả về lỗi 400 kèm từ khóa để Frontend bắt Pop-up
                     throw new IllegalArgumentException("HẾT_HÀNG|" + food.getFoodName());
                 }
 
-                // Đủ điều kiện thì mới trừ kho
                 ingredient.setQuantityStock(currentStock.subtract(totalDeducted));
-                ingredientRepository.save(ingredient); // Lưu lại kho mới
+                ingredientRepository.save(ingredient); 
             }
 
             OrderDetail detail = new OrderDetail();
@@ -188,7 +185,13 @@ public class SalesServiceImpl implements ISalesService {
         }).collect(Collectors.toList());
 
         order.setOrderDetails(details);
-        return orderRepository.save(order);
+        
+        Order savedOrder = orderRepository.save(order);
+
+        // BẮN TÍN HIỆU WEBSOCKET
+        messagingTemplate.convertAndSend("/topic/kitchen", "NEW_ORDER");
+
+        return savedOrder;
     }
 
     @Override
@@ -243,7 +246,6 @@ public class SalesServiceImpl implements ISalesService {
             return matcher.group();
         }
 
-        // Fallback cho account dạng số thuần: 01 -> N01
         if (trimmed.matches("\\d{2}")) {
             return "N" + trimmed;
         }
@@ -272,18 +274,15 @@ public class SalesServiceImpl implements ISalesService {
                 ? user.getRole().getRoleName().trim().toLowerCase(Locale.ROOT)
                 : "";
 
-        // Loại các role vận hành.
         if (roleName.contains("admin") || roleName.contains("thu ngân") || roleName.contains("thu ngan")
                 || roleName.contains("bếp") || roleName.contains("bep")) {
             return false;
         }
 
-        // Ưu tiên role có từ khóa khách/bàn.
         if (roleName.contains("khách") || roleName.contains("khach") || roleName.contains("ban") || roleName.contains("bàn")) {
             return true;
         }
 
-        // Fallback: account map ra mã bàn hợp lệ thì vẫn tính là account bàn.
         return !extractTableCodeFromAccount(user).isBlank();
     }
 

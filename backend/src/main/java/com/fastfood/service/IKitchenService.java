@@ -8,6 +8,7 @@ import java.util.List;
 public interface IKitchenService {
     List<KitchenTableOrderResponse> getPendingOrdersByTable();
     List<KitchenFoodPendingResponse> getRemainingFoodSummary();
+    List<KitchenTableOrderResponse> getCompletedOrders();
     void markOrderItemServed(Long orderDetailId);
 }
 

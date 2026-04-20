@@ -167,7 +167,7 @@ const FoodMenu = () => {
 
   const fetchTables = useCallback(async ({ silent = false } = {}) => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/v1/sales/tables`);
+      const res = await axios.get(`${API_BASE_URL}/sales/tables`);
       setTables(res.data?.data || []);
     } catch (err) {
       console.error(err);
@@ -276,7 +276,7 @@ const FoodMenu = () => {
     };
 
     try {
-      await axios.post(`${API_BASE_URL}/v1/sales/orders`, orderPayload);
+      await axios.post(`${API_BASE_URL}/sales/orders`, orderPayload);
       message.success(`Đặt món thành công cho ${effectiveTableCode}!`);
       setCart([]);
       setIsCartModalOpen(false);

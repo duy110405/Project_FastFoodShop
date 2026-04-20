@@ -170,17 +170,32 @@ public class SalesServiceImpl implements ISalesService {
             throw new RuntimeException("Bàn không hợp lệ hoặc chưa được cấu hình account bàn");
         }
 
-        Order order = new Order();
-        order.setIdOrder(generateNextOrderId());
-        order.setTableNumber(normalizedTable);
-        order.setCustomerName(request.getCustomerName());
-        order.setOrderTime(LocalDateTime.now());
-        order.setStatus("PENDING");
-        order.setCreatedBy(request.getCreatedBy());
+        // KIỂM TRA XEM BÀN ĐÃ CÓ ĐƠN NÀO ĐANG CHỜ THANH TOÁN (PENDING) CHƯA
+        Order order = orderRepository.findByStatus("PENDING").stream()
+                .filter(o -> normalizedTable.equals(normalizeTableNumber(o.getTableNumber())))
+                .findFirst()
+                .orElse(null);
 
-        var details = request.getItems().stream().map(item -> {
+        // NẾU CHƯA CÓ ĐƠN PENDING TẠO ĐƠN MỚI HOÀN TOÀN
+        if (order == null) {
+            order = new Order();
+            order.setIdOrder(generateNextOrderId());
+            order.setTableNumber(normalizedTable);
+            order.setCustomerName(request.getCustomerName());
+            order.setOrderTime(LocalDateTime.now());
+            order.setStatus("PENDING");
+            order.setCreatedBy(request.getCreatedBy());
+            order.setOrderDetails(new ArrayList<>()); // Khởi tạo list rỗng để tránh lỗi NullPointer
+        }
+
+        Order finalOrder = order; // Dùng biến final để xài an toàn trong vòng lặp Stream bên dưới
+
+        // XỬ LÝ TRỪ KHO VÀ TẠO DANH SÁCH CHI TIẾT MÓN ĂN MỚI
+        var newDetails = request.getItems().stream().map(item -> {
             Food food = foodRepository.findById(item.getFoodId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy món ăn"));
+
+            // Xử lý trừ kho theo từng công thức
             for (FoodIngredient recipe : food.getFoodIngredients()) {
                 Ingredient ingredient = recipe.getIngredient();
 
@@ -192,24 +207,31 @@ public class SalesServiceImpl implements ISalesService {
                     throw new IllegalArgumentException("HẾT_HÀNG|" + food.getFoodName());
                 }
 
+                // Cập nhật lại số lượng kho
                 ingredient.setQuantityStock(currentStock.subtract(totalDeducted));
-                ingredientRepository.save(ingredient); 
+                ingredientRepository.save(ingredient);
             }
 
+            // Tạo chi tiết món
             OrderDetail detail = new OrderDetail();
-            detail.setOrder(order);
+            detail.setOrder(finalOrder); // Gắn chi tiết này vào cái Đơn (cũ hoặc mới tạo)
             detail.setFood(food);
             detail.setQuantity(item.getQuantity());
-            detail.setUnitPrice(food.getUnitPrice()); 
+            detail.setUnitPrice(food.getUnitPrice());
             detail.setStatus("PENDING");
             return detail;
         }).collect(Collectors.toList());
 
-        order.setOrderDetails(details);
-        Order savedOrder = orderRepository.save(order);
+        //  GỘP CÁC MÓN MỚI VÀO ĐƠN HIỆN TẠI VÀ LƯU VÀO DATABASE
+        if (finalOrder.getOrderDetails() == null) {
+            finalOrder.setOrderDetails(new ArrayList<>());
+        }
+        finalOrder.getOrderDetails().addAll(newDetails);
 
-        // BẮN TÍN HIỆU WEBSOCKET
-       // messagingTemplate.convertAndSend("/topic/kitchen", "NEW_ORDER");
+        Order savedOrder = orderRepository.save(finalOrder);
+
+        // BẮN TÍN HIỆU WEBSOCKET XUỐNG THU NGÂN NẾU CẦN CHỚP MÀU CAM (Tùy chọn)
+        messagingTemplate.convertAndSend("/topic/cashier", "NEW_ORDER_PENDING");
 
         return savedOrder;
     }

@@ -22,4 +22,5 @@ public interface ISalesService {
     CashierOrderDetailResponse getPendingOrderByTable(String tableNumber);
     Order placeOrder(OrderRequest request);
     CashierPaymentResponse processPayment(PaymentRequest request);
+    void completeOrder(String orderId);
 }

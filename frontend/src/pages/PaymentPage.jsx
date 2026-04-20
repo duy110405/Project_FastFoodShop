@@ -26,44 +26,24 @@ const PaymentPage = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const isPollingRef = useRef(false);
 
-  const fetchPendingOrder = useCallback(async (tableNumber, { silent = false, showNotFound = true } = {}) => {
-    try {
-      if (!silent) {
-        setLoadingOrder(true);
-      }
-      const res = await apiClient.get(`/sales/tables/${tableNumber}/order`);
-      setOrderDetail(res.data?.data || null);
-    } catch (error) {
-      console.error(error);
-      setOrderDetail(null);
-      if (showNotFound) {
-        message.warning(error.response?.data?.message || 'Bàn này chưa có đơn cần thanh toán');
-      }
-    } finally {
-      if (!silent) {
-        setLoadingOrder(false);
-      }
-    }
-  }, []);
-
+  // ==========================================
+  // 1. API LẤY DANH SÁCH BÀN & MÀU SẮC
+  // ==========================================
   const fetchTables = useCallback(async ({ silent = false } = {}) => {
-    if (isPollingRef.current && silent) {
-      return;
-    }
+    if (isPollingRef.current && silent) return;
 
     try {
       isPollingRef.current = true;
-      if (!silent) {
-        setLoadingTables(true);
-      }
+      if (!silent) setLoadingTables(true);
 
       const res = await apiClient.get('/sales/tables');
       const nextTables = res.data?.data || [];
       setTables(nextTables);
 
+      // Nếu đang chọn bàn mà có data mới, tự động fetch lại chi tiết bàn đó
       if (selectedTable) {
-        const selected = nextTables.find((table) => table.tableNumber === selectedTable);
-        if (!selected || !selected.unpaid) {
+        const selected = nextTables.find((t) => t.tableNumber === selectedTable);
+        if (!selected || selected.status === 'EMPTY') {
           setOrderDetail(null);
         } else {
           await fetchPendingOrder(selectedTable, { silent: true, showNotFound: false });
@@ -71,34 +51,50 @@ const PaymentPage = () => {
       }
     } catch (error) {
       console.error(error);
-      if (!silent) {
-        message.error(error.response?.data?.message || 'Không tải được trạng thái bàn');
-      }
+      if (!silent) message.error(error.response?.data?.message || 'Không tải được trạng thái bàn');
     } finally {
       isPollingRef.current = false;
-      if (!silent) {
-        setLoadingTables(false);
-      }
+      if (!silent) setLoadingTables(false);
     }
-  }, [fetchPendingOrder, selectedTable]);
+  }, [selectedTable]);
 
+  // ==========================================
+  // 2. API LẤY CHI TIẾT ĐƠN HÀNG CỦA BÀN
+  // ==========================================
+  const fetchPendingOrder = useCallback(async (tableNumber, { silent = false, showNotFound = true } = {}) => {
+    try {
+      if (!silent) setLoadingOrder(true);
+      const res = await apiClient.get(`/sales/tables/${tableNumber}/order`);
+      setOrderDetail(res.data?.data || null);
+    } catch (error) {
+      console.error(error);
+      setOrderDetail(null);
+      if (showNotFound) message.warning(error.response?.data?.message || 'Bàn này đang trống');
+    } finally {
+      if (!silent) setLoadingOrder(false);
+    }
+  }, []);
+
+  // Tự động quét cập nhật
   useEffect(() => {
     fetchTables();
-
     const intervalId = setInterval(() => {
       if (document.visibilityState === 'visible') {
         fetchTables({ silent: true });
       }
     }, POLL_INTERVAL_MS);
-
     return () => clearInterval(intervalId);
   }, [fetchTables]);
 
+  // ==========================================
+  // 3. HÀM CHỌN BÀN
+  // ==========================================
   const handleSelectTable = (table) => {
     setSelectedTable(table.tableNumber);
-    if (!table.unpaid) {
+    // Nếu bàn trống thì không gọi API chi tiết
+    if (table.status === 'EMPTY' || !table.status) {
       setOrderDetail(null);
-      message.info(`Bàn ${table.tableNumber} đã thanh toán hoặc chưa có khách.`);
+      message.info(`Bàn ${table.tableNumber} hiện đang trống.`);
       return;
     }
     fetchPendingOrder(table.tableNumber);
@@ -106,12 +102,11 @@ const PaymentPage = () => {
 
   const totalAmount = useMemo(() => Number(orderDetail?.totalAmount || 0), [orderDetail]);
 
+  // ==========================================
+  // 4. HÀM THANH TOÁN (Từ Cam -> Vàng)
+  // ==========================================
   const submitPayment = async () => {
-    if (!orderDetail?.orderId) {
-      message.warning('Vui lòng chọn bàn có đơn chưa thanh toán');
-      return;
-    }
-
+    if (!orderDetail?.orderId) return message.warning('Vui lòng chọn bàn có đơn');
     try {
       setPaying(true);
       const res = await apiClient.post('/sales/payments', {
@@ -119,9 +114,7 @@ const PaymentPage = () => {
         customerPhone: customerPhone || null,
         paymentMethod
       });
-
-      const invoice = res.data?.data;
-      message.success(`Thanh toán thành công. Mã hóa đơn: ${invoice?.invoiceId || ''}`.trim());
+      message.success(`Thanh toán thành công. Đã báo bếp!`);
       setIsConfirmOpen(false);
       setOrderDetail(null);
       setCustomerPhone('');
@@ -134,42 +127,80 @@ const PaymentPage = () => {
     }
   };
 
+  // ==========================================
+  // 5. 🎯 HÀM DỌN BÀN (Từ Đỏ -> Xanh)
+  // ==========================================
+  const handleReleaseTable = async () => {
+    try {
+      setPaying(true);
+      // Gọi API dọn bàn chốt đơn (BE cần tạo API này)
+      await apiClient.post(`/sales/orders/${orderDetail.orderId}/complete`);
+      
+      message.success(`Đã dọn xong bàn ${orderDetail.tableNumber}`);
+      setOrderDetail(null);
+      await fetchTables(); 
+    } catch (error) {
+      console.error(error);
+      message.error(error.response?.data?.message || 'Lỗi khi dọn bàn');
+    } finally {
+      setPaying(false);
+    }
+  };
+
   return (
     <div style={{ padding: 20 }}>
       <Title level={3} style={{ marginBottom: 16 }}>Thanh Toán Thu Ngân</Title>
 
-      <Card title="Trạng thái bàn (Đỏ: chưa thanh toán, Xanh: đã thanh toán)" style={{ marginBottom: 16 }}>
+      {/* ----------------- KHU VỰC 1: LƯỚI BÀN ----------------- */}
+      <Card title="Trạng thái bàn" style={{ marginBottom: 16 }}>
         <Spin spinning={loadingTables}>
           {tables.length === 0 ? (
-            <Empty description="Chưa có bàn nào đặt món" />
+            <Empty description="Hệ thống chưa cấu hình bàn" />
           ) : (
             <Row gutter={[12, 12]}>
-              {tables.map((table) => (
-                <Col xs={12} sm={8} md={6} lg={4} key={table.tableNumber}>
-                  <Button
-                    block
-                    style={{
-                      height: 52,
-                      color: '#fff',
-                      border: 'none',
-                      background: table.unpaid ? '#ff4d4f' : '#52c41a',
-                      boxShadow: selectedTable === table.tableNumber ? '0 0 0 2px rgba(24, 144, 255, 0.35)' : 'none'
-                    }}
-                    onClick={() => handleSelectTable(table)}
-                  >
-                    {table.tableNumber}
-                  </Button>
-                </Col>
-              ))}
+              {tables.map((table) => {
+                // LOGIC MÀU SẮC CHUẨN XÁC
+                let bgColor = '#52c41a'; // Xanh lá (EMPTY)
+                let textColor = '#fff';
+                
+                if (table.status === 'PENDING') {
+                  bgColor = '#faad14'; // Cam: Chưa thanh toán
+                } else if (table.status === 'PAID') {
+                  bgColor = '#fadb14'; // Vàng: Đã thanh toán, Bếp đang nấu
+                  textColor = '#000';
+                } else if (table.status === 'SERVED') {
+                  bgColor = '#f5222d'; // Đỏ: Bếp trả xong, Khách đang ăn
+                }
+
+                return (
+                  <Col xs={12} sm={8} md={6} lg={4} key={table.tableNumber}>
+                    <Button
+                      block
+                      style={{
+                        height: 52,
+                        color: textColor,
+                        border: 'none',
+                        background: bgColor,
+                        boxShadow: selectedTable === table.tableNumber ? '0 0 0 2px rgba(24, 144, 255, 0.5)' : 'none',
+                        fontWeight: 'bold'
+                      }}
+                      onClick={() => handleSelectTable(table)}
+                    >
+                      {table.tableNumber}
+                    </Button>
+                  </Col>
+                );
+              })}
             </Row>
           )}
         </Spin>
       </Card>
 
-      <Card title={selectedTable ? `Chi tiết bàn ${selectedTable}` : 'Chọn bàn để xem đơn'}>
+      {/* ----------------- KHU VỰC 2: CHI TIẾT ĐƠN & THANH TOÁN ----------------- */}
+      <Card title={selectedTable ? `Chi tiết bàn ${selectedTable}` : 'Chọn bàn để thao tác'}>
         <Spin spinning={loadingOrder}>
           {!orderDetail ? (
-            <Empty description="Không có đơn chưa thanh toán" />
+            <Empty description="Bàn này đang trống" />
           ) : (
             <>
               <Space style={{ marginBottom: 12 }}>
@@ -191,27 +222,52 @@ const PaymentPage = () => {
                 )}
               />
 
-              <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              {/* 🎯 LOGIC ĐỔI NÚT THÔNG MINH Ở ĐÂY */}
+              <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: '#fafafa', padding: 15, borderRadius: 8 }}>
                 <Title level={4} type="danger" style={{ margin: 0 }}>
                   Tổng tiền: {formatCurrency(totalAmount)}
                 </Title>
 
                 <Space wrap>
-                  <Input
-                    placeholder="SĐT khách (không bắt buộc)"
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    style={{ width: 220 }}
-                  />
-                  <Select
-                    value={paymentMethod}
-                    options={PAYMENT_METHOD_OPTIONS}
-                    onChange={setPaymentMethod}
-                    style={{ width: 180 }}
-                  />
-                  <Button type="primary" danger disabled={paying || !orderDetail?.orderId} onClick={() => setIsConfirmOpen(true)}>
-                    Thanh toán
-                  </Button>
+                  {/* BÀN ĐỎ: Hiện nút Dọn bàn */}
+                  {orderDetail?.status === 'SERVED' ? (
+                    <Button 
+                      type="primary" 
+                      style={{ background: '#52c41a', borderColor: '#52c41a', fontWeight: 'bold' }} 
+                      disabled={paying} 
+                      onClick={handleReleaseTable}
+                    >
+                      Dọn Bàn (Giải phóng)
+                    </Button>
+                  ) : 
+                  
+                  /* BÀN VÀNG: Đã trả tiền, đợi bếp */
+                  orderDetail?.status === 'PAID' ? (
+                    <Button type="default" disabled style={{ color: '#faad14', fontWeight: 'bold', borderColor: '#faad14' }}>
+                      Bếp đang chuẩn bị món...
+                    </Button>
+                  ) : 
+                  
+                  /* BÀN CAM: Chưa trả tiền -> Hiện ô thanh toán */
+                  (
+                    <>
+                      <Input
+                        placeholder="SĐT khách (không bắt buộc)"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        style={{ width: 180 }}
+                      />
+                      <Select
+                        value={paymentMethod}
+                        options={PAYMENT_METHOD_OPTIONS}
+                        onChange={setPaymentMethod}
+                        style={{ width: 140 }}
+                      />
+                      <Button type="primary" danger disabled={paying || !orderDetail?.orderId} onClick={() => setIsConfirmOpen(true)}>
+                        Thanh toán ngay
+                      </Button>
+                    </>
+                  )}
                 </Space>
               </div>
             </>
@@ -219,6 +275,7 @@ const PaymentPage = () => {
         </Spin>
       </Card>
 
+      {/* Modal xác nhận */}
       <Modal
         title="Xác nhận thanh toán"
         open={isConfirmOpen}
@@ -237,4 +294,3 @@ const PaymentPage = () => {
 };
 
 export default PaymentPage;
-

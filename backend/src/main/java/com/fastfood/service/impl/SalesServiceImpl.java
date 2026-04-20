@@ -26,12 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.Locale;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -83,17 +78,38 @@ public class SalesServiceImpl implements ISalesService {
     @Override
     @Transactional(readOnly = true)
     public List<CashierTableStatusResponse> getTableStatuses() {
-        Set<String> occupiedTables = getOccupiedTableNumbers();
         Set<String> configuredTables = getConfiguredTableCodesFromAccounts();
+
+        // Lấy tất cả các đơn ĐANG HOẠT ĐỘNG
+        List<Order> allActiveOrders = new ArrayList<>();
+        allActiveOrders.addAll(orderRepository.findByStatus("PENDING"));
+        allActiveOrders.addAll(orderRepository.findByStatus("PAID"));
+        allActiveOrders.addAll(orderRepository.findByStatus("SERVED"));
+
+        // CHỈ LẤY ĐƠN MỚI NHẤT CỦA MỖI BÀN
+        Map<String, Order> latestOrderPerTable = new HashMap<>();
+        for (Order o : allActiveOrders) {
+            String table = normalizeTableNumber(o.getTableNumber());
+            if (!latestOrderPerTable.containsKey(table) ||
+                    o.getOrderTime().isAfter(latestOrderPerTable.get(table).getOrderTime())) {
+                latestOrderPerTable.put(table, o);
+            }
+        }
 
         List<String> sortedTables = new ArrayList<>(configuredTables);
         sortedTables.sort(String::compareTo);
 
         return sortedTables.stream()
-                .map(table -> CashierTableStatusResponse.builder()
-                        .tableNumber(table)
-                        .unpaid(occupiedTables.contains(table))
-                        .build())
+                .map(table -> {
+                    Order latestOrder = latestOrderPerTable.get(table);
+                    String currentStatus = latestOrder != null ? latestOrder.getStatus() : "EMPTY";
+
+                    return CashierTableStatusResponse.builder()
+                            .tableNumber(table)
+                            .unpaid("PENDING".equals(currentStatus))
+                            .status(currentStatus) // Ném status chuẩn xuống FE
+                            .build();
+                })
                 .toList();
     }
 
@@ -102,11 +118,15 @@ public class SalesServiceImpl implements ISalesService {
     public CashierOrderDetailResponse getPendingOrderByTable(String tableNumber) {
         String normalizedTable = normalizeTableNumber(tableNumber);
 
-        Order order = orderRepository.findPendingOrdersWithDetails().stream()
+        List<Order> activeOrders = new ArrayList<>();
+        activeOrders.addAll(orderRepository.findByStatus("PENDING"));
+        activeOrders.addAll(orderRepository.findByStatus("PAID"));
+        activeOrders.addAll(orderRepository.findByStatus("SERVED"));
+
+        Order order = activeOrders.stream()
                 .filter(candidate -> normalizedTable.equals(normalizeTableNumber(candidate.getTableNumber())))
-                .sorted(Comparator.comparing(Order::getOrderTime, Comparator.nullsLast(Comparator.naturalOrder())))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Bàn này chưa có đơn chưa thanh toán"));
+                .max(Comparator.comparing(Order::getOrderTime))
+                .orElseThrow(() -> new RuntimeException("Bàn này trống"));
 
         List<CashierOrderItemResponse> items = order.getOrderDetails().stream()
                 .filter(detail -> detail.getFood() != null)
@@ -136,6 +156,7 @@ public class SalesServiceImpl implements ISalesService {
                 .customerName(order.getCustomerName())
                 .orderTime(order.getOrderTime())
                 .totalAmount(totalAmount)
+                .status(order.getStatus())
                 .items(items)
                 .build();
     }
@@ -185,11 +206,10 @@ public class SalesServiceImpl implements ISalesService {
         }).collect(Collectors.toList());
 
         order.setOrderDetails(details);
-        
         Order savedOrder = orderRepository.save(order);
 
         // BẮN TÍN HIỆU WEBSOCKET
-        messagingTemplate.convertAndSend("/topic/kitchen", "NEW_ORDER");
+       // messagingTemplate.convertAndSend("/topic/kitchen", "NEW_ORDER");
 
         return savedOrder;
     }
@@ -220,6 +240,7 @@ public class SalesServiceImpl implements ISalesService {
 
         order.setStatus("PAID");
         orderRepository.save(order);
+        messagingTemplate.convertAndSend("/topic/kitchen", "NEW_ORDER");
 
         return CashierPaymentResponse.builder()
                 .invoiceId(invoice.getIdInvoice())
@@ -297,5 +318,24 @@ public class SalesServiceImpl implements ISalesService {
         }
 
         return normalizeTableNumber(user.getUsername());
+    }
+
+    @Override
+    @Transactional
+    public void completeOrder(String orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+
+        // Chỉ cho phép dọn bàn khi bếp đã nấu xong (SERVED)
+        if (!"SERVED".equalsIgnoreCase(order.getStatus())) {
+            throw new RuntimeException("Không thể dọn bàn khi bếp chưa phục vụ xong!");
+        }
+
+        // Đổi trạng thái thành COMPLETED (Hoàn tất)
+        order.setStatus("COMPLETED");
+        orderRepository.save(order);
+
+        // Bắn tín hiệu WebSocket báo dọn bàn thành công (để các máy khác cập nhật thành Xanh)
+        messagingTemplate.convertAndSend("/topic/cashier", "TABLE_CLEARED");
     }
 }

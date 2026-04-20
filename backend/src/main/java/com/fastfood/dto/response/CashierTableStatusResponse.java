@@ -12,5 +12,6 @@ import lombok.NoArgsConstructor;
 public class CashierTableStatusResponse {
     private String tableNumber;
     private boolean unpaid;
+    private String status;
 }
 

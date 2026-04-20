@@ -19,6 +19,7 @@ public class CashierOrderDetailResponse {
     private String customerName;
     private LocalDateTime orderTime;
     private BigDecimal totalAmount;
+    private String status;
     private List<CashierOrderItemResponse> items;
 }
 

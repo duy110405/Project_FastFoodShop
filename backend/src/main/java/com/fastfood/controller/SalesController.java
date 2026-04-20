@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/api/v1/sales")
+@RequestMapping("/api/sales")
 @RequiredArgsConstructor
 public class SalesController {
 
@@ -67,5 +67,15 @@ public class SalesController {
                 .message("Thanh toán thành công")
                 .data(salesService.processPayment(request))
                 .build();
+    }
+
+    @PostMapping("/orders/{orderId}/complete")
+    public ResponseEntity<?> completeOrder(@PathVariable String orderId) {
+        try {
+            salesService.completeOrder(orderId);
+            return ResponseEntity.ok().body(Map.of("message", "Đã dọn bàn và hoàn tất đơn hàng thành công"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 }

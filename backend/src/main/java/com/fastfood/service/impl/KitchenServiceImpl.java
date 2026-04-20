@@ -20,7 +20,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
-
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 @Service
 @RequiredArgsConstructor
 public class KitchenServiceImpl implements IKitchenService {
@@ -28,6 +28,7 @@ public class KitchenServiceImpl implements IKitchenService {
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final FoodRepository foodRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // ========================================================
     // 1. LẤY DANH SÁCH MÓN ĐANG CHỜ (PENDING) - CHỈ TRONG NGÀY
@@ -66,6 +67,9 @@ public class KitchenServiceImpl implements IKitchenService {
         LocalDateTime now = LocalDateTime.now();
 
         for (Order order : orders) {
+            if ("PENDING".equals(statusFilter) && !"PAID".equalsIgnoreCase(order.getStatus())) {
+                continue;
+            }
             if (order.getOrderDetails() == null) continue;
 
             for (OrderDetail detail : order.getOrderDetails()) {
@@ -172,7 +176,26 @@ public class KitchenServiceImpl implements IKitchenService {
             return;
         }
 
+        // 1. Đánh dấu món này đã nấu xong
         orderDetail.setStatus("SERVED");
         orderDetailRepository.save(orderDetail);
+
+        // =========================================================
+        // 2. LOGIC TỰ ĐỘNG CHUYỂN MÀU BÀN TỪ VÀNG SANG ĐỎ
+        // =========================================================
+        Order order = orderDetail.getOrder();
+
+        // Kiểm tra xem TẤT CẢ các món trong bàn này đã nấu xong hết chưa?
+        boolean isAllServed = order.getOrderDetails().stream()
+                .allMatch(item -> "SERVED".equalsIgnoreCase(item.getStatus()));
+
+        if (isAllServed) {
+            // Nếu tất cả đã xong -> Chốt Đơn hàng thành SERVED (Bàn đỏ)
+            order.setStatus("SERVED");
+            orderRepository.save(order);
+
+            // Bắn tín hiệu sang màn hình Thu Ngân để nó tự chớp màu Đỏ ngay lập tức
+            messagingTemplate.convertAndSend("/topic/cashier", "TABLE_SERVED");
+        }
     }
 }

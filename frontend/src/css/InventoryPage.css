@@ -70,8 +70,7 @@
 
 .inventory-panel,
 .inventory-scroll-page,
-.create-receipt-panel,
-.consume-block__body {
+.create-receipt-panel {
   background: var(--faf-surface-2);
   border: 1px solid var(--faf-border);
   border-radius: 24px;
@@ -104,6 +103,10 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px 24px;
+}
+
+.consume-search-grid {
+  grid-template-columns: 1fr 1fr;
 }
 
 .inventory-search-actions {
@@ -274,6 +277,12 @@
   transform: translateY(-1px);
 }
 
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .btn-primary {
   background: linear-gradient(135deg, var(--faf-primary), var(--faf-orange));
   color: #fff;
@@ -282,6 +291,16 @@
 .btn-secondary {
   background: #ffe7dc;
   color: var(--faf-primary-dark);
+}
+
+.btn-danger {
+  background: #ff542f;
+  color: #111;
+}
+
+.btn-success {
+  background: #57eb80;
+  color: #111;
 }
 
 .receipt-total {
@@ -490,6 +509,30 @@
   cursor: not-allowed;
 }
 
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 18px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.status-badge--cho {
+  background: #fff3cd;
+  color: #8a5a00;
+}
+
+.status-badge--da_nhap {
+  background: #d4edda;
+  color: #1f6f43;
+}
+
+.status-badge--hoan_tra {
+  background: #f8d7da;
+  color: #8f1d2c;
+}
+
 select option {
   color: #000;
   background: #fff;
@@ -515,7 +558,8 @@ select option {
   .receipt-item,
   .create-item,
   .inventory-search-grid,
-  .create-top-grid {
+  .create-top-grid,
+  .consume-search-grid {
     grid-template-columns: 1fr;
   }
 
@@ -540,43 +584,4 @@ select option {
     justify-content: stretch;
     flex-direction: column;
   }
-  .btn-danger {
-  background: #ff542f;
-  color: #111;
-}
-
-.btn-success {
-  background: #57eb80;
-  color: #111;
-}
-
-.btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 10px 18px;
-  border-radius: 14px;
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.status-badge--cho {
-  background: #fff3cd;
-  color: #8a5a00;
-}
-
-.status-badge--da_nhap {
-  background: #d4edda;
-  color: #1f6f43;
-}
-
-.status-badge--hoan_tra {
-  background: #f8d7da;
-  color: #8f1d2c;
-}
 }

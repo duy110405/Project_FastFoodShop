@@ -1,16 +1,17 @@
 package com.fastfood.repository;
 
-import com.fastfood.entity.transaction.OrderDetail;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.math.BigDecimal;
-import java.util.List;
+import com.fastfood.entity.transaction.OrderDetail;
 
 @Repository
 public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> {
@@ -39,24 +40,27 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
                                               Pageable pageable);
 
     @Query("""
-            SELECT FUNCTION('DATE', od.order.orderTime),
+            SELECT FUNCTION('DATE', si.paymentDate),
                    fi.ingredient.idIngredient,
                    fi.ingredient.imageUrlIngredient,
                    fi.ingredient.ingredientName,
                    fi.ingredient.unit,
                    fi.ingredient.quantityStock,
                    SUM(fi.quantityUsed * od.quantity)
-            FROM OrderDetail od
-            JOIN FoodIngredient fi ON fi.food = od.food
-            WHERE od.order.orderTime >= :fromDateStart
-              AND od.order.orderTime < :toDateExclusive
-            GROUP BY FUNCTION('DATE', od.order.orderTime),
+            FROM SalesInvoice si
+            JOIN si.order o
+            JOIN o.orderDetails od
+            JOIN od.food f
+            JOIN f.foodIngredients fi
+            WHERE si.paymentDate >= :fromDateStart
+              AND si.paymentDate < :toDateExclusive
+            GROUP BY FUNCTION('DATE', si.paymentDate),
                      fi.ingredient.idIngredient,
                      fi.ingredient.imageUrlIngredient,
                      fi.ingredient.ingredientName,
                      fi.ingredient.unit,
                      fi.ingredient.quantityStock
-            ORDER BY FUNCTION('DATE', od.order.orderTime) DESC,
+            ORDER BY FUNCTION('DATE', si.paymentDate) DESC,
                      SUM(fi.quantityUsed * od.quantity) DESC
             """)
     List<Object[]> getIngredientConsumptionHistory(@Param("fromDateStart") LocalDateTime fromDateStart,
@@ -88,4 +92,3 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
     BigDecimal sumProductionCostOfPaidOrdersInRange(@Param("fromDateTime") LocalDateTime fromDateTime,
                                                     @Param("toDateTime") LocalDateTime toDateTime);
 }
-

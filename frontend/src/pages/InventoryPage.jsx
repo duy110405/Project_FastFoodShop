@@ -7,6 +7,10 @@ const API_BASE_URL = 'http://localhost:8080/api';
 const DEFAULT_RECEIPT_STATUS = 'CHO';
 const POLL_INTERVAL_MS = 7000;
 
+// khoảng mặc định để hiển thị toàn bộ lịch sử tiêu thụ khi chưa tìm kiếm
+const DEFAULT_CONSUME_FROM = '2020-01-01';
+const DEFAULT_CONSUME_TO = '2099-12-31';
+
 const IngredientImage = ({ src, alt }) => {
   const finalSrc = src || '/images/default-food.png';
 
@@ -93,8 +97,8 @@ function InventoryTrackingTab({ items, loading }) {
             <div className="inventory-card__sub">
               Số lượng tồn: {item.currentStock} {item.unit || ''}
             </div>
-             <div className="inventory-card__sub">
-            Giá vốn trung bình: {formatMoney(item.importPrice)}
+            <div className="inventory-card__sub">
+              Giá vốn trung bình: {formatMoney(item.importPrice)}
             </div>
             <div className="inventory-card__sub">Mức tối thiểu: {item.minStock}</div>
           </div>
@@ -184,16 +188,16 @@ function ImportHistoryTab({
         </div>
 
         <div className="inventory-search-actions">
-  <button type="button" className="btn btn-primary" onClick={handleSearch}>
-    Tìm kiếm
-  </button>
-  <button type="button" className="btn btn-secondary" onClick={handleReset}>
-    Làm mới
-  </button>
-  <button type="button" className="btn btn-primary" onClick={onCreateNew}>
-    Tạo phiếu mới
-  </button>
-</div>
+          <button type="button" className="btn btn-primary" onClick={handleSearch}>
+            Tìm kiếm
+          </button>
+          <button type="button" className="btn btn-secondary" onClick={handleReset}>
+            Làm mới
+          </button>
+          <button type="button" className="btn btn-primary" onClick={onCreateNew}>
+            Tạo phiếu mới
+          </button>
+        </div>
       </div>
 
       {!receipts.length ? (
@@ -280,7 +284,6 @@ function ImportHistoryTab({
           );
         })
       )}
-
     </div>
   );
 }
@@ -289,9 +292,7 @@ function CreateImportTab({ inventoryItems, onBack, onCreated }) {
   const [supplier, setSupplier] = useState('');
   const [date, setDate] = useState('');
   const [createdBy, setCreatedBy] = useState(localStorage.getItem('username') || 'admin');
-  const [rows, setRows] = useState([
-    { ingredientId: '', quantityImport: 1, importPrice: 0 }
-  ]);
+  const [rows, setRows] = useState([{ ingredientId: '', quantityImport: 1, importPrice: 0 }]);
   const [submitting, setSubmitting] = useState(false);
 
   const grandTotal = useMemo(() => {
@@ -315,9 +316,8 @@ function CreateImportTab({ inventoryItems, onBack, onCreated }) {
     setRows(rows.slice(0, rows.length - 1));
   };
 
-  const getIngredientInfo = (ingredientId) => {
-    return inventoryItems.find((item) => item.ingredientId === ingredientId);
-  };
+  const getIngredientInfo = (ingredientId) =>
+    inventoryItems.find((item) => item.ingredientId === ingredientId);
 
   const handleSubmit = async () => {
     if (!supplier.trim()) {
@@ -491,7 +491,16 @@ function CreateImportTab({ inventoryItems, onBack, onCreated }) {
   );
 }
 
-function ConsumptionHistoryTab({ groups, loading }) {
+function ConsumptionHistoryTab({
+  groups,
+  loading,
+  draftFromDate,
+  setDraftFromDate,
+  draftToDate,
+  setDraftToDate,
+  handleSearch,
+  handleReset
+}) {
   if (loading) {
     return (
       <div className="inventory-loading">
@@ -500,56 +509,82 @@ function ConsumptionHistoryTab({ groups, loading }) {
     );
   }
 
-  if (!groups.length) {
-    return (
-      <div className="inventory-scroll-page">
-        <div className="inventory-create-title">Lịch sử tiêu thụ nguyên liệu</div>
-        <Empty description="Chưa có dữ liệu tiêu thụ nguyên liệu" />
-      </div>
-    );
-  }
-
   return (
     <div className="inventory-scroll-page">
       <div className="inventory-create-title">Lịch sử tiêu thụ nguyên liệu</div>
 
-      {groups.map((group, groupIndex) => (
-        <div className="receipt-block" key={`${group.date}-${groupIndex}`}>
-          <div className="receipt-block__header">
-            <span>{formatDateVN(group.date)}</span>
+      <div className="inventory-search-box">
+        <div className="inventory-search-grid consume-search-grid">
+          <div className="form-group">
+            <label>Từ ngày:</label>
+            <input
+              type="date"
+              value={draftFromDate}
+              onChange={(e) => setDraftFromDate(e.target.value)}
+            />
           </div>
 
-          <div className="receipt-block__body">
-            <div className="receipt-block__items inventory-scroll-area small">
-              {(group.items || []).map((item, index) => (
-                <div className="receipt-item" key={`${group.date}-${item.ingredientId}-${index}`}>
-                  <IngredientImage
-                    src={item.imageUrlIngredient}
-                    alt={item.ingredientName}
-                  />
-
-                  <div className="receipt-item__main">
-                    <div className="receipt-item__code">{item.ingredientId}</div>
-                    <div className="receipt-item__name">{item.ingredientName}</div>
-                    <div className="inventory-card__sub">
-                      Tồn kho hiện tại: {item.currentStock} {item.unit || ''}
-                    </div>
-                  </div>
-
-                  <div className="receipt-item__meta">
-                    <div>
-                      Số lượng đã tiêu thụ: <span>{item.consumedQuantity}</span>
-                    </div>
-                    <div>
-                      Đơn vị: <span>{item.unit || '---'}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="form-group">
+            <label>Đến ngày:</label>
+            <input
+              type="date"
+              value={draftToDate}
+              onChange={(e) => setDraftToDate(e.target.value)}
+            />
           </div>
         </div>
-      ))}
+
+        <div className="inventory-search-actions">
+          <button type="button" className="btn btn-primary" onClick={handleSearch}>
+            Tìm kiếm
+          </button>
+          <button type="button" className="btn btn-secondary" onClick={handleReset}>
+            Làm mới
+          </button>
+        </div>
+      </div>
+
+      {!groups.length ? (
+        <Empty description="Chưa có dữ liệu tiêu thụ nguyên liệu" />
+      ) : (
+        groups.map((group, groupIndex) => (
+          <div className="receipt-block" key={`${group.date}-${groupIndex}`}>
+            <div className="receipt-block__header">
+              <span>{formatDateVN(group.date)}</span>
+            </div>
+
+            <div className="receipt-block__body">
+              <div className="receipt-block__items inventory-scroll-area small">
+                {(group.items || []).map((item, index) => (
+                  <div className="receipt-item" key={`${group.date}-${item.ingredientId}-${index}`}>
+                    <IngredientImage
+                      src={item.imageUrlIngredient}
+                      alt={item.ingredientName}
+                    />
+
+                    <div className="receipt-item__main">
+                      <div className="receipt-item__code">{item.ingredientId}</div>
+                      <div className="receipt-item__name">{item.ingredientName}</div>
+                      <div className="inventory-card__sub">
+                        Tồn kho hiện tại: {item.currentStock} {item.unit || ''}
+                      </div>
+                    </div>
+
+                    <div className="receipt-item__meta">
+                      <div>
+                        Số lượng đã tiêu thụ: <span>{item.consumedQuantity}</span>
+                      </div>
+                      <div>
+                        Đơn vị: <span>{item.unit || '---'}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 }
@@ -568,68 +603,62 @@ export default function InventoryPage() {
   const [updatingReceiptId, setUpdatingReceiptId] = useState('');
 
   const [supplierKeyword, setSupplierKeyword] = useState('');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
+  const [importFromDate, setImportFromDate] = useState('');
+  const [importToDate, setImportToDate] = useState('');
   const [ingredientId, setIngredientId] = useState('');
+  const [isSearchingReceipts, setIsSearchingReceipts] = useState(false);
+
+  const [consumeDraftFromDate, setConsumeDraftFromDate] = useState('');
+  const [consumeDraftToDate, setConsumeDraftToDate] = useState('');
+  const [consumeAppliedFromDate, setConsumeAppliedFromDate] = useState(DEFAULT_CONSUME_FROM);
+  const [consumeAppliedToDate, setConsumeAppliedToDate] = useState(DEFAULT_CONSUME_TO);
+  const [isSearchingConsumption, setIsSearchingConsumption] = useState(false);
 
   const fetchInventoryReport = async ({ silent = false } = {}) => {
     try {
-      if (!silent) {
-        setLoadingInventory(true);
-      }
+      if (!silent) setLoadingInventory(true);
       const res = await axios.get(`${API_BASE_URL}/inventory/report`);
       setInventoryItems(res.data.data || []);
     } catch (err) {
       console.error(err);
-      if (!silent) {
-        message.error('Lỗi lấy dữ liệu tồn kho!');
-      }
+      if (!silent) message.error('Lỗi lấy dữ liệu tồn kho!');
     } finally {
-      if (!silent) {
-        setLoadingInventory(false);
-      }
+      if (!silent) setLoadingInventory(false);
     }
   };
 
   const fetchReceipts = async ({ silent = false } = {}) => {
     try {
-      if (!silent) {
-        setLoadingReceipts(true);
-      }
+      if (!silent) setLoadingReceipts(true);
       const res = await axios.get(`${API_BASE_URL}/inventory/receipts`);
       setReceipts(res.data.data || []);
     } catch (err) {
       console.error(err);
-      if (!silent) {
-        message.error('Lỗi lấy phiếu nhập!');
-      }
+      if (!silent) message.error('Lỗi lấy phiếu nhập!');
     } finally {
-      if (!silent) {
-        setLoadingReceipts(false);
-      }
+      if (!silent) setLoadingReceipts(false);
     }
   };
 
-  const fetchConsumptionHistory = async (fromDateParam, toDateParam, { silent = false } = {}) => {
+  const fetchConsumptionHistory = async (
+    fromDateValue,
+    toDateValue,
+    { silent = false } = {}
+  ) => {
     try {
-      if (!silent) {
-        setLoadingConsumption(true);
-      }
+      if (!silent) setLoadingConsumption(true);
+
       const params = {};
-      if (fromDateParam) params.fromDate = fromDateParam;
-      if (toDateParam) params.toDate = toDateParam;
+      if (fromDateValue) params.fromDate = fromDateValue;
+      if (toDateValue) params.toDate = toDateValue;
 
       const res = await axios.get(`${API_BASE_URL}/inventory/consumption-history`, { params });
       setConsumptionHistory(res.data.data || []);
     } catch (err) {
       console.error(err);
-      if (!silent) {
-        message.error('Lỗi lấy lịch sử tiêu thụ nguyên liệu!');
-      }
+      if (!silent) message.error('Lỗi lấy lịch sử tiêu thụ nguyên liệu!');
     } finally {
-      if (!silent) {
-        setLoadingConsumption(false);
-      }
+      if (!silent) setLoadingConsumption(false);
     }
   };
 
@@ -639,12 +668,16 @@ export default function InventoryPage() {
 
       const params = {};
       if (supplierKeyword.trim()) params.supplierName = supplierKeyword.trim();
-      if (fromDate) params.fromDate = fromDate;
-      if (toDate) params.toDate = toDate;
+      if (importFromDate) params.fromDate = importFromDate;
+      if (importToDate) params.toDate = importToDate;
       if (ingredientId) params.ingredientId = ingredientId;
+
+      const hasSearchCondition =
+        !!supplierKeyword.trim() || !!importFromDate || !!importToDate || !!ingredientId;
 
       const res = await axios.get(`${API_BASE_URL}/inventory/receipts/search`, { params });
       setReceipts(res.data.data || []);
+      setIsSearchingReceipts(hasSearchCondition);
     } catch (err) {
       console.error(err);
       message.error('Lỗi tìm phiếu nhập!');
@@ -655,38 +688,78 @@ export default function InventoryPage() {
 
   const resetSearch = async () => {
     setSupplierKeyword('');
-    setFromDate('');
-    setToDate('');
+    setImportFromDate('');
+    setImportToDate('');
     setIngredientId('');
+    setIsSearchingReceipts(false);
     await fetchReceipts();
+  };
+
+  const searchConsumptionHistory = async () => {
+    if (!consumeDraftFromDate || !consumeDraftToDate) {
+      message.warning('Vui lòng nhập đầy đủ từ ngày và đến ngày');
+      return;
+    }
+
+    if (consumeDraftFromDate > consumeDraftToDate) {
+      message.warning('Từ ngày không được lớn hơn đến ngày');
+      return;
+    }
+
+    setConsumeAppliedFromDate(consumeDraftFromDate);
+    setConsumeAppliedToDate(consumeDraftToDate);
+    setIsSearchingConsumption(true);
+
+    await fetchConsumptionHistory(consumeDraftFromDate, consumeDraftToDate);
+  };
+
+  const resetConsumptionHistory = async () => {
+    setConsumeDraftFromDate('');
+    setConsumeDraftToDate('');
+    setConsumeAppliedFromDate(DEFAULT_CONSUME_FROM);
+    setConsumeAppliedToDate(DEFAULT_CONSUME_TO);
+    setIsSearchingConsumption(false);
+
+    await fetchConsumptionHistory(DEFAULT_CONSUME_FROM, DEFAULT_CONSUME_TO);
   };
 
   useEffect(() => {
     fetchInventoryReport();
     fetchReceipts();
-    fetchConsumptionHistory();
+    fetchConsumptionHistory(DEFAULT_CONSUME_FROM, DEFAULT_CONSUME_TO);
+  }, []);
 
+  useEffect(() => {
     const intervalId = setInterval(() => {
       if (document.visibilityState === 'visible') {
         fetchInventoryReport({ silent: true });
-        if (importMode === 'history') {
+
+        if (importMode === 'history' && !isSearchingReceipts) {
           fetchReceipts({ silent: true });
         }
-        if (mainTab === 'consume') {
-          fetchConsumptionHistory(fromDate || undefined, toDate || undefined, { silent: true });
+
+        if (mainTab === 'consume' && !isSearchingConsumption) {
+          fetchConsumptionHistory(DEFAULT_CONSUME_FROM, DEFAULT_CONSUME_TO, { silent: true });
         }
       }
     }, POLL_INTERVAL_MS);
 
     return () => clearInterval(intervalId);
-  }, [importMode, mainTab, fromDate, toDate]);
+  }, [importMode, mainTab, isSearchingReceipts, isSearchingConsumption]);
 
-const handleCreated = async () => {
-  setImportMode('history');
-  await fetchInventoryReport();
-  await fetchReceipts();
-  await fetchConsumptionHistory();
-};
+  const handleCreated = async () => {
+    setImportMode('history');
+    setIsSearchingReceipts(false);
+
+    await fetchInventoryReport();
+    await fetchReceipts();
+
+    if (isSearchingConsumption) {
+      await fetchConsumptionHistory(consumeAppliedFromDate, consumeAppliedToDate);
+    } else {
+      await fetchConsumptionHistory(DEFAULT_CONSUME_FROM, DEFAULT_CONSUME_TO);
+    }
+  };
 
   const handleUpdateStatus = async (receipt, nextStatus) => {
     if (!isPendingStatus(receipt.status)) {
@@ -707,14 +780,24 @@ const handleCreated = async () => {
     };
 
     try {
-  setUpdatingReceiptId(receipt.idReceipt);
-  await axios.put(`${API_BASE_URL}/inventory/receipts/${receipt.idReceipt}`, payload);
-  message.success('Cập nhật trạng thái phiếu thành công');
+      setUpdatingReceiptId(receipt.idReceipt);
+      await axios.put(`${API_BASE_URL}/inventory/receipts/${receipt.idReceipt}`, payload);
+      message.success('Cập nhật trạng thái phiếu thành công');
 
-  await fetchReceipts();
-  await fetchInventoryReport();
-  await fetchConsumptionHistory();
-} catch (err) {
+      if (isSearchingReceipts) {
+        await searchReceipts();
+      } else {
+        await fetchReceipts();
+      }
+
+      await fetchInventoryReport();
+
+      if (isSearchingConsumption) {
+        await fetchConsumptionHistory(consumeAppliedFromDate, consumeAppliedToDate);
+      } else {
+        await fetchConsumptionHistory(DEFAULT_CONSUME_FROM, DEFAULT_CONSUME_TO);
+      }
+    } catch (err) {
       console.error(err);
       message.error(err.response?.data?.message || 'Cập nhật trạng thái thất bại');
     } finally {
@@ -769,10 +852,10 @@ const handleCreated = async () => {
               onCreateNew={() => setImportMode('create')}
               supplierKeyword={supplierKeyword}
               setSupplierKeyword={setSupplierKeyword}
-              fromDate={fromDate}
-              setFromDate={setFromDate}
-              toDate={toDate}
-              setToDate={setToDate}
+              fromDate={importFromDate}
+              setFromDate={setImportFromDate}
+              toDate={importToDate}
+              setToDate={setImportToDate}
               ingredientId={ingredientId}
               setIngredientId={setIngredientId}
               inventoryItems={inventoryItems}
@@ -795,6 +878,12 @@ const handleCreated = async () => {
         <ConsumptionHistoryTab
           groups={consumptionHistory}
           loading={loadingConsumption}
+          draftFromDate={consumeDraftFromDate}
+          setDraftFromDate={setConsumeDraftFromDate}
+          draftToDate={consumeDraftToDate}
+          setDraftToDate={setConsumeDraftToDate}
+          handleSearch={searchConsumptionHistory}
+          handleReset={resetConsumptionHistory}
         />
       )}
     </div>

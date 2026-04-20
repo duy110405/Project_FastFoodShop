@@ -50,4 +50,16 @@ public interface OrderRepository extends JpaRepository<Order, String> {
             """)
     long countOrdersInRange(@Param("fromDateTime") LocalDateTime fromDateTime,
                             @Param("toDateTime") LocalDateTime toDateTime);
+
+    // ========================================================
+    // CÁC HÀM MỚI THÊM ĐỂ LỌC ĐƠN HÀNG THEO NGÀY (CHO BẾP)
+    // ========================================================
+    @Query("""
+            SELECT DISTINCT o FROM Order o 
+            LEFT JOIN FETCH o.orderDetails od 
+            LEFT JOIN FETCH od.food 
+            WHERE o.orderTime BETWEEN :start AND :end 
+            ORDER BY o.orderTime ASC
+            """)
+    List<Order> findOrdersWithDetailsByDate(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   Row,
   Col,
@@ -37,7 +37,7 @@ const normalizeRole = (role) => {
   return role || '';
 };
 
-// Chuẩn hóa về dạng hiển thị/gửi: Ban01
+// Chuẩn hóa về dạng Ban01
 const extractTableCode = (value) => {
   const source = String(value || '')
     .trim()
@@ -46,23 +46,20 @@ const extractTableCode = (value) => {
 
   if (!source) return '';
 
-  // Ban01
   if (/^BAN\d{2}$/.test(source)) {
     return source.replace(/^BAN/, 'Ban');
   }
 
-  // Bàn01 / BÀN01
   const normalizedFromLabel = source.replace(/BÀN/g, 'BAN');
   if (/^BAN\d{2}$/.test(normalizedFromLabel)) {
     return normalizedFromLabel.replace(/^BAN/, 'Ban');
   }
 
-  // N01 từ backend cũ
+  // nếu backend cũ trả N01
   if (/^N\d{2}$/.test(source)) {
     return source.replace(/^N/, 'Ban');
   }
 
-  // 01
   if (/^\d{2}$/.test(source)) {
     return `Ban${source}`;
   }
@@ -110,7 +107,6 @@ const FoodMenu = () => {
   const [tables, setTables] = useState([]);
 
   const [menuItems, setMenuItems] = useState([]);
-  const [filteredItems, setFilteredItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [activeCategory, setActiveCategory] = useState('ALL');
 
@@ -143,7 +139,13 @@ const FoodMenu = () => {
   const effectiveTableCode = useMemo(() => extractTableCode(tableNumber), [tableNumber]);
   const canPlaceOrder = Boolean(effectiveTableCode);
 
-  const fetchCategories = async ({ silent = false } = {}) => {
+  const filteredItems = useMemo(() => {
+    return activeCategory === 'ALL'
+      ? menuItems
+      : menuItems.filter((food) => food.idCategory === activeCategory);
+  }, [menuItems, activeCategory]);
+
+  const fetchCategories = useCallback(async ({ silent = false } = {}) => {
     try {
       const res = await axios.get(`${API_BASE_URL}/foodCategory`);
       setCategories(res.data.data || []);
@@ -151,25 +153,19 @@ const FoodMenu = () => {
       console.error(err);
       if (!silent) message.error('Lỗi lấy danh mục!');
     }
-  };
+  }, []);
 
-  const fetchFoods = async ({ silent = false } = {}) => {
+  const fetchFoods = useCallback(async ({ silent = false } = {}) => {
     try {
       const res = await axios.get(`${API_BASE_URL}/foods/menu`);
-      const nextFoods = res.data.data || [];
-      setMenuItems(nextFoods);
-      setFilteredItems(
-        activeCategory === 'ALL'
-          ? nextFoods
-          : nextFoods.filter((food) => food.idCategory === activeCategory)
-      );
+      setMenuItems(res.data.data || []);
     } catch (err) {
       console.error(err);
       if (!silent) message.error('Lỗi kết nối Backend!');
     }
-  };
+  }, []);
 
-  const fetchTables = async ({ silent = false } = {}) => {
+  const fetchTables = useCallback(async ({ silent = false } = {}) => {
     try {
       const res = await axios.get(`${API_BASE_URL}/v1/sales/tables`);
       setTables(res.data?.data || []);
@@ -179,7 +175,7 @@ const FoodMenu = () => {
         message.error(err.response?.data?.message || 'Không tải được danh sách bàn');
       }
     }
-  };
+  }, [isCashier]);
 
   useEffect(() => {
     fetchCategories();
@@ -199,15 +195,10 @@ const FoodMenu = () => {
     }, POLL_INTERVAL_MS);
 
     return () => clearInterval(intervalId);
-  }, [activeCategory, isCashier]);
+  }, [fetchCategories, fetchFoods, fetchTables, isCashier]);
 
   const handleTabChange = (idCategory) => {
     setActiveCategory(idCategory);
-    if (idCategory === 'ALL') {
-      setFilteredItems(menuItems);
-    } else {
-      setFilteredItems(menuItems.filter((food) => food.idCategory === idCategory));
-    }
   };
 
   const commitCashierTable = (rawValue) => {
@@ -270,7 +261,7 @@ const FoodMenu = () => {
       return message.warning('Giỏ hàng đang trống!');
     }
 
-    if (!effectiveTableCode) {
+    if (isCashier && !effectiveTableCode) {
       return message.warning('Vui lòng nhập hoặc chọn bàn trước khi đặt món!');
     }
 
@@ -304,7 +295,9 @@ const FoodMenu = () => {
     setFoodQuantity(1);
   };
 
-  const closeFoodDetail = () => setSelectedFood(null);
+  const closeFoodDetail = () => {
+    setSelectedFood(null);
+  };
 
   const handleAddToCart = () => {
     if (isCashier && !effectiveTableCode) {

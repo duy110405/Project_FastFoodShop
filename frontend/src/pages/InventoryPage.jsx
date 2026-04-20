@@ -93,6 +93,9 @@ function InventoryTrackingTab({ items, loading }) {
             <div className="inventory-card__sub">
               Số lượng tồn: {item.currentStock} {item.unit || ''}
             </div>
+             <div className="inventory-card__sub">
+            Giá vốn trung bình: {formatMoney(item.importPrice)}
+            </div>
             <div className="inventory-card__sub">Mức tối thiểu: {item.minStock}</div>
           </div>
 

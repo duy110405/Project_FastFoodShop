@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 
 @Service
@@ -29,25 +30,31 @@ public class KitchenServiceImpl implements IKitchenService {
     private final FoodRepository foodRepository;
 
     // ========================================================
-    // 1. LẤY DANH SÁCH MÓN ĐANG CHỜ (PENDING)
+    // 1. LẤY DANH SÁCH MÓN ĐANG CHỜ (PENDING) - CHỈ TRONG NGÀY
     // ========================================================
     @Override
     @Transactional(readOnly = true)
     public List<KitchenTableOrderResponse> getPendingOrdersByTable() {
-        List<Order> pendingOrders = orderRepository.findPendingOrdersWithDetails();
+        LocalDateTime startOfDay = LocalDateTime.now().with(LocalTime.MIN);
+        LocalDateTime endOfDay = LocalDateTime.now().with(LocalTime.MAX);
+
+        // Lấy danh sách đơn hàng trong ngày hôm nay
+        List<Order> pendingOrders = orderRepository.findOrdersWithDetailsByDate(startOfDay, endOfDay);
         return groupOrdersByTable(pendingOrders, "PENDING");
     }
 
     // ========================================================
-    // 2. LẤY DANH SÁCH MÓN ĐÃ XONG (SERVED) - MỚI BỔ SUNG
+    // 2. LẤY DANH SÁCH MÓN ĐÃ XONG (SERVED) - CHỈ TRONG NGÀY
     // ========================================================
     @Override
     @Transactional(readOnly = true)
     public List<KitchenTableOrderResponse> getCompletedOrders() {
-        // Lấy các đơn hàng (có thể dùng findAll hoặc một query chuyên biệt)
-        List<Order> allOrders = orderRepository.findAll(); 
+        LocalDateTime startOfDay = LocalDateTime.now().with(LocalTime.MIN);
+        LocalDateTime endOfDay = LocalDateTime.now().with(LocalTime.MAX);
+
+        // Lấy danh sách đơn hàng trong ngày hôm nay thay vì findAll()
+        List<Order> allOrders = orderRepository.findOrdersWithDetailsByDate(startOfDay, endOfDay); 
         
-        // Sử dụng hàm dùng chung để lọc theo trạng thái SERVED
         return groupOrdersByTable(allOrders, "SERVED");
     }
 
@@ -155,9 +162,6 @@ public class KitchenServiceImpl implements IKitchenService {
         return minPortions == Integer.MAX_VALUE ? 0 : minPortions;
     }
 
-    // ========================================================
-    // 4. ĐÁNH DẤU HOÀN THÀNH (MARK AS SERVED)
-    // ========================================================
     @Override
     @Transactional
     public void markOrderItemServed(Long orderDetailId) {

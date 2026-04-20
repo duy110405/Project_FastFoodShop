@@ -95,35 +95,103 @@ const MainLayout = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider theme="dark" breakpoint="lg" collapsedWidth="0">
-        <div style={{ height: 32, margin: 16, background: 'rgba(255, 255, 255, 0.2)', borderRadius: 6, display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold' }}>
-          HỆ THỐNG POS
+      {/* Sửa Sider: Đổi màu nền sang đỏ đô #a30000 */}
+      <Sider 
+        theme="dark" 
+        breakpoint="lg" 
+        collapsedWidth="0"
+        style={{ backgroundColor: '#a30000' }}
+      >
+        <div style={{ 
+          height: 60, 
+          margin: 16, 
+          background: 'rgba(255, 255, 255, 0.1)', 
+          borderRadius: 8, 
+          display: 'flex', 
+          flexDirection: 'column',
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          color: '#ffd700', // Màu vàng Logo
+          fontWeight: 'bold',
+          border: '1px solid rgba(255, 215, 0, 0.3)'
+        }}>
+          <span style={{ fontSize: '18px', letterSpacing: '2px' }}>FAF POS</span>
+          <span style={{ fontSize: '8px', color: '#fff' }}>HỆ THỐNG QUẢN LÝ</span>
         </div>
-        <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]}>
+
+        {/* Sửa Menu: Đồng bộ CSS ngay trong file để ghi đè theme dark mặc định */}
+        <Menu 
+          theme="dark" 
+          mode="inline" 
+          selectedKeys={[selectedKey]}
+          style={{ backgroundColor: '#a30000', borderRight: 0 }}
+          className="faf-admin-menu"
+        >
           {visibleMenuItems.map((item) => (
-            <Menu.Item key={item.key} icon={item.icon}>
-              <Link to={item.path}>{item.label}</Link>
+            <Menu.Item 
+              key={item.key} 
+              icon={React.cloneElement(item.icon, { style: { color: selectedKey === item.key ? '#a30000' : '#fff' } })}
+              style={{
+                backgroundColor: selectedKey === item.key ? '#ffd700' : 'transparent',
+                borderRadius: '8px',
+                margin: '4px 8px',
+                color: selectedKey === item.key ? '#a30000' : '#fff',
+                fontWeight: selectedKey === item.key ? 'bold' : 'normal',
+              }}
+            >
+              <Link to={item.path} style={{ color: 'inherit' }}>{item.label}</Link>
             </Menu.Item>
           ))}
         </Menu>
       </Sider>
-      <Layout>
-        <Header style={{ background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px' }}>
-          <Title level={4} style={{ margin: 0 }}>FastFood Dashboard</Title>
-          <Button icon={<LogoutOutlined />} onClick={handleLogout}>Đăng xuất</Button>
+
+      <Layout style={{ background: '#fffaf0' }}> {/* Nền kem nhẹ cho trang nhã */}
+        <Header style={{ 
+            background: '#fff', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            padding: '0 20px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+            borderBottom: '2px solid #a30000' // Vạch kẻ đỏ thương hiệu
+        }}>
+          <Title level={4} style={{ margin: 0, color: '#a30000' }}>Hệ Thống FastFood FAF</Title>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+             <span style={{ fontWeight: '600', color: '#555' }}>{localStorage.getItem('fullName')}</span>
+             <Button 
+                danger 
+                type="primary" 
+                icon={<LogoutOutlined />} 
+                onClick={handleLogout}
+                style={{ borderRadius: '6px', backgroundColor: '#a30000' }}
+             >
+                Đăng xuất
+             </Button>
+          </div>
         </Header>
+        
         <Content style={{ margin: '24px 16px 0' }}>
-          <div style={{ minHeight: 360, background: '#fff', borderRadius: 8 }}>
+          <div style={{ 
+            minHeight: 360, 
+            background: '#fff', 
+            borderRadius: 12, 
+            padding: '20px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+          }}>
             <Outlet />
           </div>
         </Content>
+
+        <Footer style={{ textAlign: 'center', color: '#999' }}>
+          FAF ©2026 - Đặt hàng tích tắc, Vị ngon xuất sắc
+        </Footer>
       </Layout>
     </Layout>
   );
 };
 
 // ========================================================
-//  COMPONENT CHÍNH
+//  COMPONENT CHÍNH (Giữ nguyên logic của bạn)
 // ========================================================
 function App() {
   const role = getStoredRole();
@@ -137,7 +205,6 @@ function App() {
         <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           <Route path="/" element={<HomeRedirect />} />
           
-          {/* CẤU TRÚC ROUTE ADMIN ĐÃ ĐƯỢC LÀM GỌN VÀ FIX LỖI TRÙNG LẶP */}
           <Route path="/admin">
             <Route 
                 path="dashboard" 
@@ -157,7 +224,6 @@ function App() {
             />
           </Route>
 
-          {/* Các trang của Role khác */}
           <Route path="/menu" element={<ProtectedRoute allowedRoles={['Khách hàng', 'Thu ngân']}><FoodMenu /></ProtectedRoute>} />
           <Route path="/kitchen" element={<ProtectedRoute allowedRoles={['Bếp']}><KitchenPage /></ProtectedRoute>} />
           <Route path="/payment" element={<ProtectedRoute allowedRoles={['Thu ngân']}><PaymentPage /></ProtectedRoute>} />

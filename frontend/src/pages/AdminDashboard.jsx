@@ -100,7 +100,7 @@ const AdminDashboard = () => {
       <div className="admin-dashboard-toolbar">
         <div>
           <Title level={4} style={{ margin: 0 }}>Dashboard Admin</Title>
-          <Text type="secondary">Theo doi nhanh doanh thu va mon an duoc order nhieu nhat</Text>
+          <Text type="secondary">Theo dõi doanh thu và món ăn được order nhiều nhất</Text>
         </div>
 
         <Space>
@@ -110,27 +110,27 @@ const AdminDashboard = () => {
             allowClear={false}
             format="DD/MM/YYYY"
           />
-          <Button type="primary" onClick={() => fetchDashboard(range, { resetPage: true })}>Truy van</Button>
+          <Button type="primary" onClick={() => fetchDashboard(range, { resetPage: true })}>Truy vấn</Button>
         </Space>
       </div>
 
-      <Spin spinning={loading} tip="Dang tai dashboard...">
+      <Spin spinning={loading} tip="Đang tải dashboard...">
         <Row gutter={[16, 16]}>
           <Col xs={24} md={12} lg={6}>
             <Card>
-              <Statistic title="Loi nhuan" value={formatCurrency(dashboard.profit)} prefix={<DollarOutlined />} />
+              <Statistic title="Lợi nhuận" value={formatCurrency(dashboard.profit)} prefix={<DollarOutlined />} />
             </Card>
           </Col>
 
           <Col xs={24} md={12} lg={6}>
             <Card>
-              <Statistic title="So don trong ky" value={dashboard.orderCount || 0} prefix={<FileTextOutlined />} />
+              <Statistic title="Số đơn trong kỳ" value={dashboard.orderCount || 0} prefix={<FileTextOutlined />} />
             </Card>
           </Col>
 
           <Col xs={24} md={12} lg={6}>
             <Card>
-              <Statistic title="Chi phi nhap TB" value={formatCurrency(dashboard.averageImportCost)} prefix={<DollarOutlined />} />
+              <Statistic title="Chi phí nhập TB" value={formatCurrency(dashboard.averageImportCost)} prefix={<DollarOutlined />} />
             </Card>
           </Col>
 
@@ -141,9 +141,9 @@ const AdminDashboard = () => {
           </Col>
         </Row>
 
-        <Card className="top-food-card" title="Mon an duoc order nhieu nhat" extra={<ShoppingOutlined />}>
+        <Card className="top-food-card" title="CÁC MÓN ĐƯỢC ORDER NHIỀU NHẤT" extra={<ShoppingOutlined />}>
           {foodPages.length === 0 ? (
-            <Empty description="Chua co du lieu mon an" />
+            <Empty description="Chưa có dữ liệu món ăn" />
           ) : (
             <>
               <div className="top-food-list">
@@ -152,7 +152,7 @@ const AdminDashboard = () => {
                     <img src={food.imageUrlFood} alt={food.foodName} className="top-food-image" />
                     <div className="top-food-info">
                       <div className="top-food-name">{food.foodName}</div>
-                      <div className="top-food-meta">Da ban: {food.quantityOrdered} suat</div>
+                      <div className="top-food-meta">Đã bán: {food.quantityOrdered} suất</div>
                       <div className="top-food-meta">Doanh thu: {formatCurrency(food.totalRevenue)}</div>
                     </div>
                   </div>

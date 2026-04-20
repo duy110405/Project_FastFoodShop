@@ -27,6 +27,8 @@ import axios from 'axios';
 const { Title, Text } = Typography;
 const API_BASE_URL = 'http://localhost:8080/api';
 const POLL_INTERVAL_MS = 10000;
+const bannerImg = './images/banner.jpg';
+const logoImg = './images/FAF_logo.jpg';
 
 const normalizeRole = (role) => {
   const normalized = (role || '').trim().toLowerCase();
@@ -355,8 +357,17 @@ const FoodMenu = () => {
   ];
 
   return (
-    <div>
-      <div className="header">
+      <div>
+      {/* HEADER: Chèn ảnh logo thực tế */}
+      <div className="header" style={{
+        // Tối ưu header: padding-top/bottom nhỏ hơn để tiết kiệm không gian
+        padding: '10px 20px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        backgroundColor: '#a30000', // Giả sử màu đỏ thương hiệu
+        boxShadow: '0 3px 10px rgba(0,0,0,0.1)'
+      }}>
         <Badge count={getTotalItems()} offset={[5, 0]}>
           <Button
             type="text"
@@ -365,13 +376,33 @@ const FoodMenu = () => {
           />
         </Badge>
 
-        <Title level={3} style={{ margin: 0, color: 'white' }}>
-          LOGO
-        </Title>
+        {/* 2. THAY THẾ CHỮ "LOGO" CŨ BẰNG ẢNH THỰC TẾ */}
+        <div style={{
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 10, // Khoảng cách giữa ảnh và text nếu cần
+          justifyContent: 'center', 
+          flex: 1 // Đẩy logo ra giữa
+        }}>
+          <img 
+            src={logoImg} 
+            alt="FAF Logo" 
+            style={{ 
+              height: 48, // Chiều cao vừa phải để cân đối với nút
+              width: 48, 
+              borderRadius: '50%', // Bo tròn ảnh (nếu logo hình tròn)
+              objectFit: 'cover', 
+              border: '2px solid white', // Viền trắng nổi bật trên nền đỏ
+              boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+            }} 
+          />
+          {/* Nếu muốn thêm tên thương hiệu nhỏ bên cạnh */}
+          {/* <Title level={4} style={{ margin: 0, color: 'white' }}>FAF Fast Food</Title> */}
+        </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
           <Text strong style={{ fontSize: 16, color: 'white' }}>
-            {tableNumber || (isCashier ? 'Chưa chọn bàn' : 'Chưa xác định bàn')}
+            {tableNumber || (isCashier ? 'Chưa chọn bàn' : 'Chưa xác định')}
           </Text>
           <Button
             type="text"
@@ -431,20 +462,18 @@ const FoodMenu = () => {
         />
 
 
-        <div
-          style={{
-            background: '#d9d9d9',
-            height: 180,
-            borderRadius: 12,
-            margin: '20px 0',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}
-        >
-          <Text type="secondary" strong>
-            BANNER
-          </Text>
+        <div style={{ margin: '20px 0' }}>
+          <img 
+            src={bannerImg} 
+            alt="Promotion Banner" 
+            style={{ 
+              width: '100%', 
+              height: 200, // Bạn có thể chỉnh lại chiều cao tùy ý
+              objectFit: 'cover', 
+              borderRadius: 12,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            }} 
+          />
         </div>
 
         <Row gutter={[16, 16]}>

@@ -1,40 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import apiClient from '../api/apiClient.js'; // Đảm bảo đường dẫn này đúng với project của bạn
-import './Login.css'; // Import file giao diện vừa tạo ở trên
+import apiClient from '../api/apiClient.js';
+import './Login.css';
 
 const normalizeRole = (role) => {
     const normalized = (role || '').trim().toLowerCase();
-
     if (normalized === 'admin') return 'ADMIN';
     if (normalized === 'thu ngân' || normalized === 'thu ngan') return 'Thu ngân';
     if (normalized === 'bếp' || normalized === 'bep') return 'Bếp';
     if (normalized === 'khách hàng' || normalized === 'khach hang') return 'Khách hàng';
-
     return role || '';
 };
 
 const getRoleHomePath = (role) => {
     const normalizedRole = normalizeRole(role);
-
     if (normalizedRole === 'ADMIN') return '/dashboard';
     if (normalizedRole === 'Thu ngân') return '/payment';
     if (normalizedRole === 'Bếp') return '/kitchen';
     if (normalizedRole === 'Khách hàng') return '/menu';
-
     return '/login';
 };
 
 const isRoleNavigable = (role) => getRoleHomePath(role) !== '/login';
 
 const Login = () => {
-    // 1. Tạo các state để lưu dữ liệu người dùng gõ vào
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-
     const navigate = useNavigate();
+
+    // Định nghĩa đường dẫn ảnh từ thư mục public
+    const bannerPath = '/images/loginBanner.png';
+    const bgPath = '/images/loginBackground.jpg';
 
     useEffect(() => {
         const savedRole = localStorage.getItem('userRole');
@@ -43,19 +41,13 @@ const Login = () => {
         }
     }, [navigate]);
 
-    // 2. Hàm xử lý khi bấm nút Đăng nhập
     const handleLogin = async (e) => {
-        e.preventDefault(); // Chặn việc tự động reload trang của thẻ form
+        e.preventDefault();
         setError('');
-        setLoading(true); // Hiển thị trạng thái đang load
-
+        setLoading(true);
         try {
-            // Gửi API lên Spring Boot
             const response = await apiClient.post('/auth/login', { username, password });
-
-            // Lấy vai trò (role) từ Backend trả về
             const userRole = normalizeRole(response.data.role);
-
             localStorage.setItem('userRole', userRole);
             localStorage.setItem('username', response.data.username || '');
             localStorage.setItem('fullName', response.data.fullName || '');
@@ -67,64 +59,58 @@ const Login = () => {
             } else {
                 localStorage.removeItem('tableNumber');
             }
-
             navigate(getRoleHomePath(userRole), { replace: true });
         } catch (err) {
-            // Nếu Spring Boot trả về lỗi 401 (Sai tài khoản/Mật khẩu)
             setError(err?.response?.data || 'Sai tài khoản hoặc mật khẩu!');
         } finally {
-            setLoading(false); // Tắt trạng thái load
+            setLoading(false);
         }
     };
 
-    // 3. Phần giao diện (JSX)
     return (
-        <div className="page-container">
-            {/* Thanh bên (Sidebar) màu xám bên trái */}
-            <div className="sidebar">
-                <div className="logo">LOGO</div>
-                <div className="slogan-box">
-                    <p className="large-gap">Slogan và 1 số ảnh liên quan</p>
-                    <p>ăn nhanh chết sớm</p>
-                </div>
+        <div className="login-container">
+            {/* Sidebar bên trái */}
+            <div className="login-sidebar">
+                <img src={bannerPath} alt="Banner FAF" className="sidebar-img" />
             </div>
 
-            {/* Nội dung chính màu trắng bên phải */}
-            <div className="main-content">
-                <p className="instruction-text">Ảnh nền chủ đề đồ ăn</p>
+            {/* Vùng đăng nhập bên phải có ảnh nền burger */}
+            <div className="login-content" style={{ backgroundImage: `url(${bgPath})` }}>
+                <div className="login-overlay"></div>
+                
                 <div className="login-card">
-                    <h2>Đăng nhập vào hệ thống</h2>
+                    <div className="login-header">
+                        <h2>Hệ Thống FAF</h2>
+                        <p>Đăng nhập để bắt đầu phục vụ</p>
+                    </div>
 
-                    {/* Gắn hàm handleLogin vào sự kiện submit của form */}
-                    <form onSubmit={handleLogin}>
-                        <div className="input-group">
-                            <label htmlFor="username">Tài khoản</label>
+                    <form onSubmit={handleLogin} className="login-form">
+                        <div className="form-group">
+                            <label>Tài khoản</label>
                             <input
                                 type="text"
-                                id="username"
-                                placeholder="Tên tài khoản"
+                                placeholder="Nhập tên tài khoản"
                                 value={username}
-                                onChange={(e) => setUsername(e.target.value)} // Lưu chữ khách gõ vào state
+                                onChange={(e) => setUsername(e.target.value)}
                                 required
                             />
                         </div>
-                        <div className="input-group">
-                            <label htmlFor="password">Mật khẩu</label>
+
+                        <div className="form-group">
+                            <label>Mật khẩu</label>
                             <input
                                 type="password"
-                                id="password"
                                 placeholder="Nhập mật khẩu"
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)} // Lưu pass khách gõ vào state
+                                onChange={(e) => setPassword(e.target.value)}
                                 required
                             />
                         </div>
 
-                        {/* Hiện thông báo chữ màu đỏ nếu nhập sai mật khẩu */}
-                        {error && <p style={{ color: 'red', textAlign: 'center', marginBottom: '15px' }}>{error}</p>}
+                        {error && <div className="error-alert">{error}</div>}
 
-                        <button type="submit" className="login-button" disabled={loading}>
-                            {loading ? 'Đang xử lý...' : 'Đăng nhập'}
+                        <button type="submit" className="btn-login" disabled={loading}>
+                            {loading ? 'Đang xác thực...' : 'Đăng nhập'}
                         </button>
                     </form>
                 </div>

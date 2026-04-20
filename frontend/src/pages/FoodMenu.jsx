@@ -430,21 +430,6 @@ const FoodMenu = () => {
           onChange={handleTabChange}
         />
 
-        <div
-          style={{
-            display: 'flex',
-            gap: 10,
-            overflowX: 'auto',
-            paddingBottom: 10,
-            scrollbarWidth: 'none'
-          }}
-        >
-          {['combo A', 'combo B', 'combo C'].map((combo) => (
-            <Button key={combo} shape="round" className="combo-btn" style={{ minWidth: 90 }}>
-              {combo}
-            </Button>
-          ))}
-        </div>
 
         <div
           style={{

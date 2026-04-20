@@ -103,15 +103,34 @@ public class InventoryImpl implements IInventoryService {
             stockReceipt.getDetails().add(toStockReceiptDetail(stockReceipt, detailRequest));
         }
 
-        // Chỉ cộng kho khi chuyển sang đã nhập hàng.
+        // Chỉ cộng kho và tính TRUNG BÌNH CỘNG GIA QUYỀN khi chuyển sang đã nhập hàng.
         if ("DA_NHAP".equals(newStatus)) {
             for (StockReceiptDetail detail : stockReceipt.getDetails()) {
                 Ingredient ingredient = detail.getIngredient();
+
+                // 1. Lấy thông tin TỒN KHO CŨ
                 BigDecimal currentStock = getIngredientQuantityStock(ingredient);
-                BigDecimal qty = detail.getQuantityImport() == null ? BigDecimal.ZERO : detail.getQuantityImport();
-                BigDecimal importPrice = detail.getImportPrice() == null ? BigDecimal.ZERO : detail.getImportPrice();
-                setIngredientQuantityStock(ingredient, currentStock.add(qty));
-                ingredient.setImportPrice(importPrice);
+                BigDecimal currentAvgPrice = ingredient.getImportPrice() == null ? BigDecimal.ZERO : ingredient.getImportPrice();
+
+                // 2. Lấy thông tin NHẬP KHO MỚI
+                BigDecimal newQty = detail.getQuantityImport() == null ? BigDecimal.ZERO : detail.getQuantityImport();
+                BigDecimal newImportPrice = detail.getImportPrice() == null ? BigDecimal.ZERO : detail.getImportPrice();
+
+                // 3. THUẬT TOÁN TÍNH GIÁ TRUNG BÌNH
+                BigDecimal totalOldValue = currentStock.multiply(currentAvgPrice); // Tiền vốn kho cũ
+                BigDecimal totalNewValue = newQty.multiply(newImportPrice);        // Tiền hàng mới nhập
+                BigDecimal totalQty = currentStock.add(newQty);                    // Tổng số lượng mới
+
+                BigDecimal newAvgPrice = BigDecimal.ZERO;
+                // Tránh lỗi chia cho 0
+                if (totalQty.compareTo(BigDecimal.ZERO) > 0) {
+                    newAvgPrice = (totalOldValue.add(totalNewValue))
+                            .divide(totalQty, 2, java.math.RoundingMode.HALF_UP);
+                }
+
+                // 4. LƯU LẠI VÀO DATABASE
+                setIngredientQuantityStock(ingredient, totalQty);
+                ingredient.setImportPrice(newAvgPrice); // Đè giá Trung bình mới tính được vào đây
                 ingredientRepository.save(ingredient);
             }
         }

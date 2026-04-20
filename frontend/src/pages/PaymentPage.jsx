@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Card, Col, Empty, Input, List, message, Modal, Row, Select, Space, Spin, Tag, Typography } from 'antd';
 import apiClient from '../api/apiClient';
 
@@ -8,6 +8,8 @@ const PAYMENT_METHOD_OPTIONS = [
   { value: 'CASH', label: 'Tiền mặt' },
   { value: 'TRANSFER', label: 'Chuyển khoản' }
 ];
+
+const POLL_INTERVAL_MS = 3000;
 
 const formatCurrency = (value) => `${Number(value || 0).toLocaleString('vi-VN')} đ`;
 
@@ -22,11 +24,40 @@ const PaymentPage = () => {
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [customerPhone, setCustomerPhone] = useState('');
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const isPollingRef = useRef(false);
 
-  const fetchTables = async () => {
+  const fetchPendingOrder = useCallback(async (tableNumber, { silent = false, showNotFound = true } = {}) => {
     try {
-      setLoadingTables(true);
-      const res = await apiClient.get('/sales/tables');
+      if (!silent) {
+        setLoadingOrder(true);
+      }
+      const res = await apiClient.get(`/v1/sales/tables/${tableNumber}/order`);
+      setOrderDetail(res.data?.data || null);
+    } catch (error) {
+      console.error(error);
+      setOrderDetail(null);
+      if (showNotFound) {
+        message.warning(error.response?.data?.message || 'Bàn này chưa có đơn cần thanh toán');
+      }
+    } finally {
+      if (!silent) {
+        setLoadingOrder(false);
+      }
+    }
+  }, []);
+
+  const fetchTables = useCallback(async ({ silent = false } = {}) => {
+    if (isPollingRef.current && silent) {
+      return;
+    }
+
+    try {
+      isPollingRef.current = true;
+      if (!silent) {
+        setLoadingTables(true);
+      }
+
+      const res = await apiClient.get('/v1/sales/tables');
       const nextTables = res.data?.data || [];
       setTables(nextTables);
 
@@ -34,33 +65,34 @@ const PaymentPage = () => {
         const selected = nextTables.find((table) => table.tableNumber === selectedTable);
         if (!selected || !selected.unpaid) {
           setOrderDetail(null);
+        } else {
+          await fetchPendingOrder(selectedTable, { silent: true, showNotFound: false });
         }
       }
     } catch (error) {
       console.error(error);
-      message.error(error.response?.data?.message || 'Không tải được trạng thái bàn');
+      if (!silent) {
+        message.error(error.response?.data?.message || 'Không tải được trạng thái bàn');
+      }
     } finally {
-      setLoadingTables(false);
+      isPollingRef.current = false;
+      if (!silent) {
+        setLoadingTables(false);
+      }
     }
-  };
-
-  const fetchPendingOrder = async (tableNumber) => {
-    try {
-      setLoadingOrder(true);
-      const res = await apiClient.get(`/sales/tables/${tableNumber}/order`);
-      setOrderDetail(res.data?.data || null);
-    } catch (error) {
-      console.error(error);
-      setOrderDetail(null);
-      message.warning(error.response?.data?.message || 'Bàn này chưa có đơn cần thanh toán');
-    } finally {
-      setLoadingOrder(false);
-    }
-  };
+  }, [fetchPendingOrder, selectedTable]);
 
   useEffect(() => {
     fetchTables();
-  }, [selectedTable]);
+
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchTables({ silent: true });
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, [fetchTables]);
 
   const handleSelectTable = (table) => {
     setSelectedTable(table.tableNumber);
@@ -82,7 +114,7 @@ const PaymentPage = () => {
 
     try {
       setPaying(true);
-      const res = await apiClient.post('/sales/payments', {
+      const res = await apiClient.post('/v1/sales/payments', {
         orderId: orderDetail.orderId,
         customerPhone: customerPhone || null,
         paymentMethod

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Tabs, Button, Modal, Form, Input, InputNumber, Select, Space, Popconfirm, message, Empty, Spin } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
@@ -6,9 +6,10 @@ import '../css/MenuAdmin.css';
 
 const { Option } = Select;
 const { TextArea } = Input;
+const POLL_INTERVAL_MS = 7000;
 
 // Đặt Base URL chuẩn của Backend
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'http://localhost:8081/api';
 
 const MenuAdmin = () => {
   const [foods, setFoods] = useState([]);
@@ -23,12 +24,21 @@ const MenuAdmin = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingFood, setEditingFood] = useState(null);
   const [form] = Form.useForm();
+  const pollingRef = useRef(false);
 
   // GỌI API LẤY DỮ LIỆU KHI VỪA VÀO TRANG (READ)
  
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = useCallback(async ({ silent = false } = {}) => {
+    if (pollingRef.current && silent) {
+      return;
+    }
+
+    if (!silent) {
+      setLoading(true);
+    }
+
     try {
+      pollingRef.current = true;
       // Chạy song song 3 API chính: Danh mục, Nguyên liệu và Món ăn
       const [catRes, ingRes, foodRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/foodCategory`),
@@ -56,15 +66,28 @@ const MenuAdmin = () => {
       }
     } catch (error) {
       console.error("Lỗi lấy dữ liệu:", error);
-      message.error("Lỗi kết nối máy chủ! Vui lòng bật Backend.");
+      if (!silent) {
+        message.error("Lỗi kết nối máy chủ! Vui lòng bật Backend.");
+      }
     } finally {
-      setLoading(false);
+      pollingRef.current = false;
+      if (!silent) {
+        setLoading(false);
+      }
     }
-  };
+  }, [activeTab]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === 'visible' && !isModalOpen && !submitLoading) {
+        fetchData({ silent: true });
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, [fetchData, isModalOpen, submitLoading]);
 
   const filteredFoods = foods.filter(food => food.idCategory === activeTab);
   const formatCurrency = (value) => Number(value || 0).toLocaleString('vi-VN');

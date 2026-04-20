@@ -5,7 +5,8 @@ import '../css/FoodMenu.css';
 import axios from 'axios';
 
 const { Title, Text } = Typography;
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = 'http://localhost:8081/api';
+const POLL_INTERVAL_MS = 10000;
 
 const resolveTableNumberFromUser = () => {
   const fullName = localStorage.getItem('fullName') || '';
@@ -38,43 +39,59 @@ const FoodMenu = () => {
   const [menuItems, setMenuItems] = useState([]); // Chứa TẤT CẢ món ăn
   const [filteredItems, setFilteredItems] = useState([]); // Chứa món ăn ĐÃ LỌC theo Tab
   const [categories, setCategories] = useState([]); // Chứa danh sách Tab (Danh mục)
+  const [activeCategory, setActiveCategory] = useState('ALL');
   
   const [cart, setCart] = useState([]);
   const [isCartModalOpen, setIsCartModalOpen] = useState(false); 
   const [selectedFood, setSelectedFood] = useState(null); 
   const [foodQuantity, setFoodQuantity] = useState(1);
-  useEffect(() => {
-   // Hàm gọi API lấy Danh mục (Category)
-   const fetchCategories = async () => {
-      try {
-        // API chuẩn: http://localhost:8080/api/foodCategory
-        const res = await axios.get(`${API_BASE_URL}/foodCategory`);
-        setCategories(res.data.data); 
-      } catch (err) {
-        console.error(err);
+
+  const fetchCategories = async ({ silent = false } = {}) => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/foodCategory`);
+      setCategories(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+      if (!silent) {
         message.error("Lỗi lấy danh mục!");
       }
-    };
+    }
+  };
 
-      // Hàm gọi API lấy TẤT CẢ món ăn
-    const fetchFoods = async () => {
-      try {
-        // API chuẩn: http://localhost:8080/api/foods/menu
-        const res = await axios.get(`${API_BASE_URL}/foods/menu`);
-        setMenuItems(res.data.data);
-        setFilteredItems(res.data.data); // Mặc định hiển thị tất cả
-      } catch (err) {
-        console.error(err);
+  const fetchFoods = async ({ silent = false } = {}) => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/foods/menu`);
+      const nextFoods = res.data.data || [];
+      setMenuItems(nextFoods);
+      setFilteredItems(activeCategory === 'ALL'
+        ? nextFoods
+        : nextFoods.filter(food => food.idCategory === activeCategory)
+      );
+    } catch (err) {
+      console.error(err);
+      if (!silent) {
         message.error("Lỗi kết nối Backend!");
       }
-    };
+    }
+  };
 
+  useEffect(() => {
     fetchCategories();
     fetchFoods();
-  }, []);   // [] có nghĩa là chỉ chạy 1 lần khi Load trang
+
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchCategories({ silent: true });
+        fetchFoods({ silent: true });
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, [activeCategory]);   // [] có nghĩa là chỉ chạy 1 lần khi Load trang
 
   // ====================LOGIC LỌC KHI BẤM VÀO TAB ====================
 const handleTabChange = (idCategory) => {
+    setActiveCategory(idCategory);
     if (idCategory === "ALL") {
       setFilteredItems(menuItems); 
     } else {

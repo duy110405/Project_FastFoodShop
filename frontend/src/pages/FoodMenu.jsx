@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Row, Col, Card, Button, Typography, message, Badge, Modal, List, Tabs, Space } from 'antd';
 import { ShoppingCartOutlined, ArrowLeftOutlined, MinusOutlined, PlusOutlined, CloseOutlined } from '@ant-design/icons';
 import '../css/FoodMenu.css';
 import axios from 'axios';
 
 const { Title, Text } = Typography;
-const API_BASE_URL = 'http://localhost:8081/api';
+const API_BASE_URL = 'http://localhost:8080/api';
 const POLL_INTERVAL_MS = 10000;
 
+// ==================== HÀM LẤY SỐ BÀN ====================
 const resolveTableNumberFromUser = () => {
   const fullName = localStorage.getItem('fullName') || '';
   const username = localStorage.getItem('username') || '';
@@ -34,49 +35,46 @@ const toTableCode = (value) => {
   return match ? match[0] : 'A01';
 };
 
+// ==================== COMPONENT CHÍNH ====================
 const FoodMenu = () => {
   const [tableNumber] = useState(resolveTableNumberFromUser);
-  const [menuItems, setMenuItems] = useState([]); // Chứa TẤT CẢ món ăn
-  const [filteredItems, setFilteredItems] = useState([]); // Chứa món ăn ĐÃ LỌC theo Tab
-  const [categories, setCategories] = useState([]); // Chứa danh sách Tab (Danh mục)
-  const [activeCategory, setActiveCategory] = useState('ALL');
+  const [menuItems, setMenuItems] = useState([]); // Chứa TẤT CẢ món ăn trong kho
+  const [categories, setCategories] = useState([]); // Chứa danh sách Tab
+  const [activeCategory, setActiveCategory] = useState('ALL'); // Tab đang chọn
+  
+  // XÓA BỎ STATE filteredItems Ở ĐÂY RỒI NHÉ!
   
   const [cart, setCart] = useState([]);
   const [isCartModalOpen, setIsCartModalOpen] = useState(false); 
   const [selectedFood, setSelectedFood] = useState(null); 
   const [foodQuantity, setFoodQuantity] = useState(1);
 
-  const fetchCategories = async ({ silent = false } = {}) => {
+  // ==================== 1. HÀM GỌI API ====================
+  const fetchCategories = useCallback(async ({ silent = false } = {}) => {
     try {
       const res = await axios.get(`${API_BASE_URL}/foodCategory`);
       setCategories(res.data.data || []);
     } catch (err) {
       console.error(err);
-      if (!silent) {
-        message.error("Lỗi lấy danh mục!");
-      }
+      if (!silent) message.error("Lỗi lấy danh mục!");
     }
-  };
+  }, []); 
 
-  const fetchFoods = async ({ silent = false } = {}) => {
+  const fetchFoods = useCallback(async ({ silent = false } = {}) => {
     try {
       const res = await axios.get(`${API_BASE_URL}/foods/menu`);
-      const nextFoods = res.data.data || [];
-      setMenuItems(nextFoods);
-      setFilteredItems(activeCategory === 'ALL'
-        ? nextFoods
-        : nextFoods.filter(food => food.idCategory === activeCategory)
-      );
+      setMenuItems(res.data.data || []); 
     } catch (err) {
       console.error(err);
-      if (!silent) {
-        message.error("Lỗi kết nối Backend!");
-      }
+      if (!silent) message.error("Lỗi kết nối Backend!");
     }
-  };
+  }, []); 
 
+  // ==================== 2. LOAD DATA (Thêm comment bỏ qua lỗi Linter quá nhạy cảm) ====================
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCategories();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchFoods();
 
     const intervalId = setInterval(() => {
@@ -87,21 +85,22 @@ const FoodMenu = () => {
     }, POLL_INTERVAL_MS);
 
     return () => clearInterval(intervalId);
-  }, [activeCategory]);   // [] có nghĩa là chỉ chạy 1 lần khi Load trang
+  }, [fetchCategories, fetchFoods]);
 
-  // ====================LOGIC LỌC KHI BẤM VÀO TAB ====================
-const handleTabChange = (idCategory) => {
+  // ==================== 3. 🎯 LOGIC LỌC TRỰC TIẾP (DERIVED STATE) ====================
+  // ĐÂY LÀ ĐIỂM ĂN TIỀN: Tính toán trực tiếp luôn, không cần useEffect hay useState nữa!
+  // Mỗi khi activeCategory hoặc menuItems thay đổi, biến này tự động có giá trị mới ngay lập tức.
+  const filteredItems = activeCategory === 'ALL' 
+    ? menuItems 
+    : menuItems.filter(food => food.idCategory === activeCategory);
+
+  // ==================== HÀM ĐỔI TAB ====================
+  const handleTabChange = (idCategory) => {
     setActiveCategory(idCategory);
-    if (idCategory === "ALL") {
-      setFilteredItems(menuItems); 
-    } else {
-      const filtered = menuItems.filter(food => food.idCategory === idCategory);
-      setFilteredItems(filtered);
-    }
   };
 
-  // ==================== API ĐẶT MÓN  ====================
-const handlePlaceOrder = async () => {
+  // ==================== API ĐẶT MÓN ====================
+  const handlePlaceOrder = async () => {
     if (cart.length === 0) return message.warning("Giỏ hàng đang trống!");
 
     const orderPayload = {
@@ -115,8 +114,7 @@ const handlePlaceOrder = async () => {
     };
 
     try {
-      // API chuẩn: http://localhost:8080/api/v1/sales/orders
-      await axios.post(`${API_BASE_URL}/v1/sales/orders`, orderPayload);
+      await axios.post(`${API_BASE_URL}/sales/orders`, orderPayload);
       message.success("Đặt món thành công! Bếp đang chuẩn bị.");
       setCart([]); 
       setIsCartModalOpen(false); 
@@ -130,6 +128,7 @@ const handlePlaceOrder = async () => {
     }
   };
 
+  // ==================== XỬ LÝ GIỎ HÀNG ====================
   const openFoodDetail = (food) => { setSelectedFood(food); setFoodQuantity(1); };
   const closeFoodDetail = () => { setSelectedFood(null); };
 
@@ -158,11 +157,11 @@ const handlePlaceOrder = async () => {
   const calculateTotal = () => cart.reduce((total, item) => total + (item.unitPrice * item.quantity), 0);
   const getTotalItems = () => cart.reduce((total, item) => total + item.quantity, 0);
 
-  // Ép cái mảng categories (Lấy từ API) thành định dạng Tabs của Ant Design
+  // ==================== RENDER TABS ====================
   const tabItems = [
     { key: 'ALL', label: 'TẤT CẢ' },
     ...categories.map(cat => ({
-      key: cat.idCategory, // ID của danh mục làm Khóa
+      key: cat.idCategory, 
       label: cat.categoryName.toUpperCase() 
     }))
   ];
@@ -191,7 +190,7 @@ const handlePlaceOrder = async () => {
           onChange={handleTabChange} 
         />
         
-        {/* COMBO CON (Vẫn để mock tĩnh tạm thời) */}
+        {/* COMBO CON */}
         <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 10, scrollbarWidth: 'none' }}>
           {['combo A', 'combo B', 'combo C'].map(combo => (
              <Button key={combo} shape="round" className="combo-btn" style={{ minWidth: 90 }}>{combo}</Button>

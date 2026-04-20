@@ -3,7 +3,7 @@ import { message, Empty, Spin } from 'antd';
 import axios from 'axios';
 import '../css/InventoryPage.css';
 
-const API_BASE_URL = 'http://localhost:8081/api';
+const API_BASE_URL = 'http://localhost:8080/api';
 const DEFAULT_RECEIPT_STATUS = 'CHO';
 const POLL_INTERVAL_MS = 7000;
 
@@ -92,6 +92,9 @@ function InventoryTrackingTab({ items, loading }) {
             <div className="inventory-card__sub">Mã nguyên liệu: {item.ingredientId}</div>
             <div className="inventory-card__sub">
               Số lượng tồn: {item.currentStock} {item.unit || ''}
+            </div>
+             <div className="inventory-card__sub">
+            Giá vốn trung bình: {formatMoney(item.importPrice)}
             </div>
             <div className="inventory-card__sub">Mức tối thiểu: {item.minStock}</div>
           </div>

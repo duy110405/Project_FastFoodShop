@@ -9,7 +9,7 @@ const { TextArea } = Input;
 const POLL_INTERVAL_MS = 7000;
 
 // Đặt Base URL chuẩn của Backend
-const API_BASE_URL = 'http://localhost:8081/api';
+const API_BASE_URL = 'http://localhost:8080/api';
 
 const MenuAdmin = () => {
   const [foods, setFoods] = useState([]);

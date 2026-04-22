@@ -39,4 +39,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Mặc định có sẵn của GitHub
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}    # Token bạn vừa thêm vào Secrets
         # Thay YOUR_PROJECT_KEY và YOUR_ORGANIZATION bằng thông tin trên SonarCloud của bạn
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=duy110405 -Dsonar.organization=duy110405 -Dsonar.host.url=https://sonarcloud.io
+       run: |
+          cd backend
+          mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=duy110405 -Dsonar.organization=duy110405 -Dsonar.host.url=https://sonarcloud.io

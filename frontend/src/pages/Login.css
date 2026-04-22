@@ -1,0 +1,160 @@
+/* src/pages/Login.css */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.login-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+/* SIDEBAR: Chứa banner đỏ */
+.login-sidebar {
+    width: 25%;
+    background-color: #a30000; /* Màu đỏ chủ đạo FAF */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+}
+
+.sidebar-img {
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+}
+
+/* VÙNG NỘI DUNG BÊN PHẢI */
+.login-content {
+    flex: 1;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* Lớp phủ mờ đằng sau để nổi bật card */
+.login-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4); /* Làm tối nền 40% */
+    backdrop-filter: blur(4px); /* Làm nhòe nhẹ ảnh nền burger */
+    z-index: 1;
+}
+
+/* CARD ĐĂNG NHẬP */
+.login-card {
+    position: relative;
+    z-index: 2; /* Nằm trên lớp overlay */
+    width: 100%;
+    max-width: 420px;
+    background: rgba(255, 255, 255, 0.95); /* Trắng hơi trong suốt nhẹ */
+    padding: 45px;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.login-header h2 {
+    font-size: 26px;
+    color: #a30000; /* Dùng màu đỏ thương hiệu cho tiêu đề */
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.login-header p {
+    color: #666;
+    font-size: 14px;
+}
+
+/* FORM */
+.form-group {
+    margin-bottom: 22px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    font-size: 15px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 14px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    font-size: 16px;
+    transition: all 0.3s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #a30000;
+    box-shadow: 0 0 0 3px rgba(163, 0, 0, 0.1);
+}
+
+.error-alert {
+    background-color: #fff2f0;
+    color: #ff4d4f;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 14px;
+    margin-bottom: 20px;
+    border: 1px solid #ffccc7;
+}
+
+.btn-login {
+    width: 100%;
+    padding: 15px;
+    background-color: #a30000; /* Chuyển nút sang màu đỏ cho tone-sur-tone */
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.3s;
+}
+
+.btn-login:hover {
+    background-color: #820000;
+    transform: translateY(-2px);
+}
+
+.btn-login:active {
+    transform: translateY(0);
+}
+
+.btn-login:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+/* Responsive cho điện thoại */
+@media (max-width: 768px) {
+    .login-sidebar {
+        display: none;
+    }
+    .login-card {
+        margin: 20px;
+    }
+}

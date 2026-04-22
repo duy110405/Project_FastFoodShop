@@ -1,0 +1,41 @@
+/* HEADER */
+.header {
+  background: #e05252;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 0 0 16px 16px;
+  margin: 0 10px;
+  color: white;
+}
+
+/* CARD */
+.food-card {
+  border-radius: 12px;
+  border: 1px solid #f0f0f0;
+  overflow: hidden;
+}
+
+.food-card-body {
+  padding: 12px;
+  text-align: center;
+  background: #fff;
+}
+
+/* BUTTON */
+.btn-primary-custom {
+  background: #e05252 !important;
+  border: none !important;
+}
+
+.btn-primary-custom:hover {
+  background: #e05252 !important;
+}
+
+/* COMBO BUTTON */
+.combo-btn {
+  background: #fff3e6;
+  border: 1px solid #e05252;
+  color: #e05252;
+}

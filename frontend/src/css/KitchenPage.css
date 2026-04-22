@@ -1,0 +1,228 @@
+/* Layout chính */
+.kitchen-page {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  background-color: #fffcf9;
+  overflow: hidden;
+}
+
+.kitchen-sidebar {
+  width: 260px;
+  min-width: 260px;
+  background: #a30000;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+}
+
+.kitchen-logo-container {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.logo-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid #ffd700;
+  object-fit: cover;
+}
+
+.kitchen-logo-container h2 {
+  color: #ffd700;
+  font-size: 20px;
+  margin-top: 10px;
+}
+
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 15px;
+}
+
+.kitchen-tab-btn {
+  height: 50px !important;
+  border-radius: 10px !important;
+  border: none !important;
+  font-weight: bold !important;
+  text-align: left !important;
+  background: transparent !important;
+  color: #fff !important;
+}
+
+.kitchen-tab-btn.active {
+  background: #ffd700 !important;
+  color: #a30000 !important;
+}
+
+/* Main content */
+.kitchen-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #d9d9d9;
+}
+
+.kitchen-topbar {
+  height: 70px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  border-bottom: 2px solid #ffd700;
+}
+
+.kitchen-topbar h3 {
+  margin: 0;
+  color: #a30000;
+  font-weight: 800;
+}
+
+.kitchen-search {
+  width: 350px;
+  border-radius: 20px !important;
+}
+
+/* Content Wrapper */
+.kitchen-content-wrapper {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Orders Grid */
+.orders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 20px;
+}
+
+.table-card {
+  background: #fff;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  height: fit-content;
+}
+
+.table-card-header {
+  background: #fff5f0;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #a30000;
+  font-weight: bold;
+  border-bottom: 1px solid #eee;
+}
+
+.toggle-btn {
+  color: #666 !important;
+  font-size: 13px !important;
+}
+
+.table-card-body {
+  padding: 15px;
+}
+
+.kitchen-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #fafafa;
+}
+
+.item-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.item-info {
+  flex: 1;
+  margin-left: 15px;
+  text-align: left;
+}
+
+.item-title {
+  margin: 0;
+  font-weight: bold;
+}
+
+.item-qty {
+  margin: 0;
+  color: #a30000;
+}
+
+.done-btn-new {
+  background-color: #28a745 !important;
+  border: none !important;
+}
+
+/* Empty States */
+.empty-white-card {
+  background: #fff;
+  border-radius: 15px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Food List Tab */
+.food-list-white-card {
+  background: #fff;
+  border-radius: 15px;
+  flex: 1;
+  padding: 10px 30px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.scrollable-list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.food-item-row {
+  display: flex;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.food-img-small {
+  width: 65px;
+  height: 65px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.food-info-left {
+  flex: 1;
+  margin-left: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.food-name {
+  margin: 0;
+  font-weight: bold;
+  font-size: 17px;
+}
+
+.food-qty-text {
+  margin: 4px 0 0;
+  color: #a30000;
+  font-weight: 600;
+}

@@ -1,0 +1,42 @@
+name: SonarCloud
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  build:
+    name: Build and analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Bắt buộc để Sonar phân tích code chuẩn xác
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+          distribution: 'zulu' 
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build and analyze
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Mặc định có sẵn của GitHub
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}    # Token bạn vừa thêm vào Secrets
+        # Thay YOUR_PROJECT_KEY và YOUR_ORGANIZATION bằng thông tin trên SonarCloud của bạn
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=duy110405 -Dsonar.organization=duy110405 -Dsonar.host.url=https://sonarcloud.io
